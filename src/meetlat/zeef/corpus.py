@@ -116,6 +116,11 @@ Origin = Literal["collected", "authored"]
 MIN_CHARS = 80
 MAX_CHARS = 400
 
+#: Paragraphs one register needs before it counts as covered. A total is the number
+#: that flatters twice over: 200 in one register is not breadth, so the exit condition
+#: is per register and the reviewer and the gate read the floor from here.
+PER_REGISTER = 25
+
 #: Licences whose text this project may redistribute under CC BY 4.0. CC BY-SA is
 #: absent on purpose: share-alike would force this repository's data licence to
 #: change, which rules out Dutch Wikipedia and most of what is easy to scrape.

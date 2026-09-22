@@ -280,6 +280,37 @@ def audit(repo_root: Path) -> list[Finding]:
     return out
 
 
+def _block(title: str) -> None:
+    """A titled group of measurement rows, blank-line separated from the one above."""
+    console.say()
+    console.line(f"{console.C.dim}{title}{console.C.reset}", indent=4)
+
+
+#: What a row's number means against whatever it is measured against. `settled` is
+#: not a lesser pass: a check the corpus cannot reach is covered by its fixture and
+#: enforced there, so marking it yellow would rebuild the permanent warning that
+#: cover was introduced to retire. Yellow is kept for a number a person can still act
+#: on, which is the only kind worth colouring as a caveat.
+_MET = "met"
+_SHORT = "short"
+_SETTLED = "settled"
+
+
+def _row(label: str, count: int, *, standing: str, tail: str) -> None:
+    """One measurement: a mark, a name, the figure, and what the figure is out of.
+
+    A count on its own cannot say whether it is enough, which is why this gate used to
+    print four numbers a reader had to already know the floor to interpret.
+    """
+    mark = {
+        _MET: f"{console.C.green}\u2714{console.C.reset}",
+        _SHORT: f"{console.C.yellow}\u25b2{console.C.reset}",
+        _SETTLED: f"{console.C.dim}\u25e6{console.C.reset}",
+    }[standing]
+    figure = f"{console.C.bold}{count:>4}{console.C.reset}"
+    print(f"    {mark} {label.ljust(22)}{figure} {console.C.dim}{tail}{console.C.reset}")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=REPO_ROOT, help="repository root to audit")
@@ -290,32 +321,66 @@ def main(argv: list[str] | None = None) -> int:
         entries = corpus.load(corpus_path(args.root))
         console.ok(f"zeef contract ok · {len(zeef.CHECKS)} checks · {len(entries)} corpus entries")
         counts = corpus.coverage(entries)
-        console.note(
-            "corpus by register: "
-            + "  ".join(f"{register} {count}" for register, count in counts.items())
-        )
-        # An entry counted as a paragraph while being shorter than one is how a corpus
-        # reads as several times the evidence it is, so the shortfall is printed.
         measured = corpus.shape(entries)
-        console.note(
-            f"corpus shape: {measured['words']} words, {measured['below_floor']} of "
-            f"{len(entries)} below the {corpus.MIN_CHARS}-character paragraph floor, "
-            f"{measured['redacted']} edited after collection"
+        exercised = exercise_counts(entries)
+
+        # Every figure here is a measurement rather than a verdict, so it carries the
+        # `stat` glyph, and each number is lifted out of the dim run: a reader scanning
+        # this is looking for the count, not for the word in front of it.
+        console.stat(
+            "   ".join(
+                (
+                    console.field("paragraphs", len(entries)),
+                    console.field("words", measured["words"]),
+                    console.field("edited after collection", measured["redacted"]),
+                )
+            )
         )
+        # A caveat rather than another figure, because an entry counted as a paragraph
+        # while being shorter than one is how a corpus reads as more evidence than it is.
+        if short := measured["below_floor"]:
+            console.wrap(
+                f"{short} of those are below the {corpus.MIN_CHARS}-character floor for "
+                f"what counts as a paragraph, so {len(entries) - short} is the honest "
+                f"paragraph count"
+            )
+
+        # Per register and against the floor, not as a total: whether a register is
+        # short is the one thing here that changes what to do next, and ADR-0007 wants
+        # the thin ones visible rather than hidden inside a number that looks large.
+        _block(f"paragraphs per register, against the floor of {corpus.PER_REGISTER}")
+        for register, count in counts.items():
+            short_by = corpus.PER_REGISTER - count
+            _row(
+                register,
+                count,
+                standing=_MET if short_by <= 0 else _SHORT,
+                tail=f"of {corpus.PER_REGISTER}"
+                if short_by <= 0
+                else f"of {corpus.PER_REGISTER}, {short_by} short",
+            )
+
         # A verdict check no paragraph can reach passes this gate without being tested,
         # which reads exactly like passing it. So the reach is printed, not inferred.
-        exercised = exercise_counts(entries)
-        console.note(
-            "corpus exercises: " + "  ".join(f"{name} {count}" for name, count in exercised.items())
-        )
+        _block("corpus paragraphs that can exercise each verdict check")
+        for name, count in exercised.items():
+            _row(
+                name,
+                count,
+                standing=_MET if count else _SETTLED,
+                tail=f"of {len(entries)}" if count else "covered by its fixture instead",
+            )
         # Reaching here means the audit found a silent fixture case for every check the
-        # corpus cannot reach, so this reports where the cover is rather than warning.
+        # corpus cannot reach, so this explains the zero rather than warning about it.
         for name, count in exercised.items():
             if count == 0:
-                console.note(
-                    f"{name}: no corpus paragraph has {EXERCISED_BY[name].needs}, "
-                    f"so its fixture carries that case instead"
+                console.wrap(
+                    f"{name} needs {EXERCISED_BY[name].needs}. No published Dutch "
+                    f"paragraph does that, so its fixture carries the case and this gate "
+                    f"fails if that case is ever removed."
                 )
+
+        console.say()
         # An empty register is named, not left to be inferred from a total (ADR-0007).
         if empty := [register for register, count in counts.items() if count == 0]:
             console.warn(f"no paragraphs for: {', '.join(empty)}")

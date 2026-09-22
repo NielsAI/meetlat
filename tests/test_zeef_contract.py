@@ -82,3 +82,26 @@ def test_losing_that_silent_case_fails_the_gate(monkeypatch: pytest.MonkeyPatch)
     check_zeef_contract._audit_exercise_coverage(REPO_ROOT, [], findings)
     assert [f.where for f in findings] == ["register_consistency"]
     assert "nothing tests it" in findings[0].what
+
+
+def test_a_check_the_corpus_cannot_reach_is_not_marked_as_a_caveat(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Yellow means a person can still act on it, and this one is settled by the gate.
+
+    `register_consistency` reaches zero corpus paragraphs on purpose, and the fixture
+    cover for it is enforced above. Marking that yellow would rebuild the permanent
+    warning the fixture rule exists to retire.
+    """
+    check_zeef_contract._row(
+        "register_consistency",
+        0,
+        standing=check_zeef_contract._SETTLED,
+        tail="covered by its fixture instead",
+    )
+    check_zeef_contract._row(
+        "informal_je", 8, standing=check_zeef_contract._SHORT, tail="of 25, 17 short"
+    )
+    settled, short = capsys.readouterr().out.splitlines()
+    assert "◦" in settled and "▲" not in settled
+    assert "▲" in short

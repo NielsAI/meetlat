@@ -20,6 +20,8 @@ Glyphs, two-space indented so they nest under a heading:
     note    dim      secondary detail, a hint, context
     line             a continuation under one of the above, no glyph
     stat  ◦ dim      a number that is not a verdict (ADR-0002)
+    field            a `label value` pair, label dim and figure bold; returns a string
+    wrap             a sentence, broken to the terminal and hung under its first line
     err   ✘ red      a problem, to stderr, without exiting
     fail  ✘ red      err, then exit 1. The only one that terminates.
 
@@ -56,6 +58,7 @@ from __future__ import annotations
 import os
 import shutil
 import sys
+import textwrap
 import threading
 import time
 from dataclasses import dataclass
@@ -157,6 +160,31 @@ def line(text: str, *, indent: int = 8, stderr: bool = False) -> None:
 def stat(text: str) -> None:
     """A measurement, marked as one. A distribution check has no verdict to report."""
     print(f"{INDENT}{C.dim}◦ {text}{C.reset}")
+
+
+def field(label: str, value: object, *, palette: Palette | None = None) -> str:
+    """A `label value` pair, the label dim and the figure bold. Returns, never prints.
+
+    `note` and `stat` dim a whole string, which is right for a sentence and wrong for a
+    row of measurements: it puts the number a reader came for in the same grey as the
+    word in front of it. Bold rather than a colour on purpose, because a count is not a
+    verdict (ADR-0002) and green already means something here.
+    """
+    p = palette or C
+    return f"{p.dim}{label}{p.reset} {p.bold}{value}{p.reset}"
+
+
+def wrap(text: str, *, indent: int = 4, stderr: bool = False) -> None:
+    """A sentence, broken at spaces to the terminal width and hung at `indent`.
+
+    Without this a long line breaks wherever the terminal runs out and continues at
+    column 0, which reads as a new statement and can split a word in half.
+    """
+    palette, stream = (CE, sys.stderr) if stderr else (C, sys.stdout)
+    width = max(40, min(shutil.get_terminal_size((80, 24)).columns, 96) - indent)
+    pad = " " * indent
+    for chunk in textwrap.wrap(text, width=width) or [""]:
+        print(f"{pad}{palette.dim}{chunk}{palette.reset}", file=stream)
 
 
 def err(text: str) -> None:

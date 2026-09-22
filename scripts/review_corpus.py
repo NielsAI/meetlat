@@ -43,9 +43,9 @@ from meetlat import console, zeef  # noqa: E402  (needs the sys.path line above)
 from meetlat.console import C  # noqa: E402
 from meetlat.zeef import corpus  # noqa: E402
 
-#: The floor each register has to clear before the corpus is evidence rather than a
-#: total (ADR-0007). Printed per candidate so progress is visible while reviewing.
-PER_REGISTER = 25
+#: The floor each register has to clear, from the corpus module so the reviewer and
+#: the gate cannot disagree about it. Printed per candidate while reviewing.
+PER_REGISTER = corpus.PER_REGISTER
 
 REGISTERS = list(get_args(corpus.Register))
 DOMAINS = list(get_args(corpus.Domain))

@@ -74,3 +74,21 @@ def test_skip_and_verdict_stay_plain_when_captured(capsys: pytest.CaptureFixture
     assert "○ secrets" in captured.out
     assert "✘ pre-commit blocked" in captured.out
     assert "\033[" not in captured.out
+
+
+def test_wrap_breaks_at_spaces_and_hangs_under_its_first_line(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A long line used to continue at column 0, which reads as a new statement."""
+    console.wrap("een twee drie vier vijf zes zeven acht negen tien elf twaalf " * 4, indent=4)
+    lines = capsys.readouterr().out.splitlines()
+    assert len(lines) > 1
+    assert all(line.startswith("    ") for line in lines)
+    assert all(len(line) <= 100 for line in lines)
+    assert not any(line.strip().endswith("-") for line in lines)
+
+
+def test_field_keeps_the_figure_out_of_the_label(capsys: pytest.CaptureFixture[str]) -> None:
+    """The point of `field`: a captured stream still reads as a pair, with no colour."""
+    print(console.field("paragraphs", 190))
+    assert capsys.readouterr().out.strip() == "paragraphs 190"
