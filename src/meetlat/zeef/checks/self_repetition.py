@@ -19,7 +19,7 @@ from meetlat.types import CheckKind, CheckResult, Finding, Span
 
 #: Chosen to sit above the longest fixed Dutch expression and below the shortest
 #: clause a model loops on. Lowering it is a calibration question, not a taste one:
-#: run it over the clean corpus first (tests/corpora/clean_nl.txt).
+#: run it over the clean corpus first (tests/corpora/clean_nl.jsonl).
 WINDOW: Final = 8
 
 _WORD = re.compile(r"\w[\w'-]*", re.UNICODE)

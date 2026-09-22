@@ -39,7 +39,7 @@ Then run `make check-zeef`: the clean corpus decides, not your judgement of the 
 
 `.claude/agents/check-author.md` holds the procedure in full. The short version: write the
 docstring first, register it in `src/meetlat/zeef/__init__.py`, write `tests/fixtures/<name>.json`
-with the exact text of every span, add clean Dutch to `tests/corpora/clean_nl.txt` in the register
+with the exact text of every span, add clean Dutch to `tests/corpora/clean_nl.jsonl` in the register
 you touched, and run `make preflight`.
 
 ## What "done" means

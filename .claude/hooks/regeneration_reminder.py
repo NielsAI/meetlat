@@ -32,7 +32,7 @@ REMINDERS: list[tuple[str, str]] = [
     (
         "src/meetlat/zeef/",
         "`make check-zeef`: a check needs a fixture with exact spans, and it must stay silent "
-        "on tests/corpora/clean_nl.txt (ADR-0002)",
+        "on tests/corpora/clean_nl.jsonl (ADR-0002, ADR-0007)",
     ),
     (
         "src/meetlat/resources/",

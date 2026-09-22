@@ -30,13 +30,17 @@ contract is what makes it mechanical: `make check-zeef` tells you when you are d
 5. **Write `tests/fixtures/<name>.json`.** At least one `fires` case per distinct trigger, with
    the literal text of every span in order, and `silent` cases covering the near-misses you
    deliberately excluded. A near-miss nobody wrote down gets re-proposed in six months.
-6. **Add clean Dutch to `tests/corpora/clean_nl.txt`** in the register your check touches, if the
-   corpus does not cover it yet. Natural text a person would write, never text constructed to pass.
+6. **Add clean Dutch to `tests/corpora/clean_nl.jsonl`** in the register your check touches, if
+   corpus does not cover it yet, tagging each paragraph's register, domain, source and licence
+   (ADR-0007). Natural text a person wrote, never text constructed to pass and **never
+   model-generated**: the corpus exists to prove the checks do not fire on human Dutch, and filling
+   it with model output makes the gate circular. `scripts/collect_corpus.py` fetches candidates
+   from the declared CC0 sources with their provenance already filled in.
 7. **Run `make check-zeef`, then `make preflight`.** Iterate until both are green.
 
 ## Not negotiable
 
-- A verdict check that fires once on `tests/corpora/clean_nl.txt` does not ship. Narrow the
+- A verdict check that fires once on `tests/corpora/clean_nl.jsonl` does not ship. Narrow the
   trigger or change the kind. Never delete the corpus line.
 - A span's text must be the literal text at those offsets. The contract validates it.
 - A wordlist entry goes in `src/meetlat/resources/*.txt`, never inline in code, and a phrase you

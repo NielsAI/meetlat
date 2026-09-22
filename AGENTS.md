@@ -42,6 +42,7 @@ exists and passes `make check-judges`.** Do not write copy that implies otherwis
 | A phrase that marks translationese or meta-commentary | `src/meetlat/resources/*.txt` | Never inline in code. A rejected phrase goes in that file's rejected block with the reason |
 | A judge prompt or card | `judges/<criterion>/v<n>/` | Versioned. A changed prompt is a new judge (ADR-0003) |
 | Hand labels | `gold/<criterion>-v<n>.jsonl` | **By a person, never by an agent.** A fail-closed guard enforces it |
+| A paragraph of clean Dutch | `tests/corpora/clean_nl.jsonl` | With its provenance, licence and register (ADR-0007). Collected by an agent, **never written by one**: that would make the false-positive gate circular. `scripts/collect_corpus.py` fetches candidates |
 | An explanation of why code is the way it is | a docstring in that code | Not a narration of the edit; the history covers that |
 | Domain vocabulary | `CONTEXT.md` | Use its exact words everywhere |
 
@@ -50,7 +51,7 @@ exists and passes `make check-judges`.** Do not write copy that implies otherwis
 **Layer 1: a check is a verdict or a distribution** (ADR-0002). A verdict check fires only where it
 is certain and reports findings; a distribution check reports numbers and can never fail. Every
 finding carries the span it fired on, validated against the response. A verdict check that fires
-once on `tests/corpora/clean_nl.txt` does not ship. Where coverage and certainty conflict, choose
+once on `tests/corpora/clean_nl.jsonl` does not ship. Where coverage and certainty conflict, choose
 certainty: `de`/`het` agreement and clause word order are excluded for this reason.
 
 **Layer 2: one criterion per judge, one binary verdict** (ADR-0003). No composite scores, no 1-to-5
@@ -96,6 +97,7 @@ make zeef ARGS=response.txt   # run layer 1 over a file
 make checks                   # what is registered, and what is designed but unbuilt
 
 make check          # every offline gate (check-zeef, check-judges)
+make corpus-sources # the declared CC0 sources the corpus may be collected from
 make preflight      # everything CI runs: lint, format, types, tests, gates
 make adr-index      # regenerate docs/adr/README.md after adding an ADR
 
@@ -110,7 +112,7 @@ Bottom up, because each layer is useful before the next exists (ADR-0001).
 
 | Step | Output | Done |
 | --- | --- | --- |
-| 1 | Layer 1 as a package: checks, wordlists, fixtures, contract gate | ✔ 5 of 7 checks; `anglicism_density` and `spelling` need wordlists |
+| 1 | Layer 1 as a package: checks, wordlists, fixtures, contract gate | ◐ 5 of 7 checks, and the corpus is 28 paragraphs against an exit condition of 200 |
 | 2 | Taxonomy plus prompt generator | ✘ ADR-0005 records the decision; no code |
 | 3 | A hand-labelled set for one criterion, two annotators | ✘ schema and guard exist, no labels |
 | 4 | First calibrated judge plus the written protocol | ◐ protocol and gate exist, no judge |

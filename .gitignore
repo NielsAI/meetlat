@@ -17,3 +17,6 @@ htmlcov/
 runs/
 *.local.json
 .env
+
+# Phase plan
+docs/agent-phases.md
