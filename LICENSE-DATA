@@ -1,6 +1,6 @@
 # Licence for the data in this repository
 
-The **data** in this repository is licensed under a
+The data **authored for this project** is licensed under a
 [Creative Commons Attribution 4.0 International Licence][cc-by] (CC BY 4.0).
 
 This covers:
@@ -8,17 +8,32 @@ This covers:
 - the hand-labelled sets in `gold/`
 - the prompt taxonomy and any prompts generated from it
 - the word and phrase lists authored for this project in `src/meetlat/resources/`
-- the Dutch reference corpus in `tests/corpora/`
+- the paragraphs in `tests/corpora/` that a person wrote for this project, which are
+  the entries marked `origin: authored`
 
 The **code** is licensed separately under the Apache License 2.0; see `LICENSE`.
 Vendored third-party lists arrive under their own licences and are recorded in
 `NOTICE`; this file does not relicense them.
 
+## Collected text is not covered by this licence
+
+The Dutch corpus in `tests/corpora/` also holds paragraphs collected from elsewhere,
+marked `origin: collected`. **Each of those stays under the licence it arrived under,
+held by whoever wrote it**, and every entry carries that licence, its source and a
+resolvable url in its own record. Nothing here relicenses them and nothing here makes
+them this project's data.
+
+This matters in both directions. A CC BY 3.0 paragraph stays CC BY 3.0: that licence
+has no upgrade clause, so redistributing it verbatim as CC BY 4.0 would not be
+permitted, and the per-entry licence field is what keeps it from being claimed as such.
+And the attribution a reuser owes is owed to the original author rather than to this
+project, so an entry has to record who wrote the text and not only where it was found.
+
 ## What that means
 
-You may share and adapt this data for any purpose, including commercially, as long as
-you give appropriate credit, link to the licence, and indicate whether you made
-changes.
+You may share and adapt the data authored here for any purpose, including commercially,
+as long as you give appropriate credit, link to the licence, and indicate whether you
+made changes.
 
 Suggested attribution:
 

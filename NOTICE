@@ -8,12 +8,20 @@ Apache License, Version 2.0 (see LICENSE).
 Data in this repository is NOT under the Apache License.
 --------------------------------------------------------------------------------
 
-The hand-labelled sets in `gold/`, the prompt taxonomy, and the word and phrase
-lists authored for this project in `src/meetlat/resources/` are licensed under
-Creative Commons Attribution 4.0 International (CC BY 4.0). See LICENSE-DATA.
+The hand-labelled sets in `gold/`, the prompt taxonomy, the word and phrase lists
+authored for this project in `src/meetlat/resources/`, and the paragraphs in
+`tests/corpora/` written for this project are licensed under Creative Commons
+Attribution 4.0 International (CC BY 4.0). See LICENSE-DATA.
 
 Software licences map badly onto datasets, and CC BY keeps attribution attached to
 labels that cost human hours to produce.
+
+`tests/corpora/` also holds paragraphs collected from elsewhere. Each stays under
+the licence it arrived under, held by whoever wrote it, and carries that licence,
+its author or publisher, and a resolvable url in its own record. They are not
+relicensed here, and a CC BY 3.0 paragraph in particular stays CC BY 3.0: that
+licence has no clause allowing it to be passed on as 4.0. The per-entry record is
+the attribution, which is why it is required rather than conventional.
 
 --------------------------------------------------------------------------------
 Third-party components
