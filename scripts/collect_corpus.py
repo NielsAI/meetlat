@@ -24,6 +24,7 @@ that.
     python3 scripts/collect_corpus.py --list
     python3 scripts/collect_corpus.py --source rijksoverheid --limit 20
     python3 scripts/collect_corpus.py --source edurep --keyword burgerschap --limit 25
+    python3 scripts/collect_corpus.py --source rijksoverheid --contains "\\bje\\b.*\\bu\\b"
 """
 
 from __future__ import annotations
@@ -39,6 +40,7 @@ from dataclasses import dataclass
 from datetime import date
 from html.parser import HTMLParser
 from pathlib import Path
+from typing import NamedTuple
 from xml.etree import ElementTree
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -112,15 +114,26 @@ SOURCES: tuple[Source, ...] = (
         licence="CC0-1.0",
         author="Rijksoverheid",
         note=(
-            "Dutch central government. CC0 1.0 per rijksoverheid.nl/copyright. Formal `u` "
-            "register, administrative domain, so it cannot fill the informal registers."
+            "Dutch central government. CC0 1.0 per rijksoverheid.nl/copyright. Formal `u`, "
+            "and written at B1 by policy (communicatierijk.nl), which is why it is the source "
+            "for `plain_language` as well: the two registers are a judgement over the same "
+            "text rather than two different sites."
         ),
         urls=(
-            "https://www.rijksoverheid.nl/onderwerpen/paspoort-en-identiteitskaart",
-            "https://www.rijksoverheid.nl/onderwerpen/huurwoning",
-            "https://www.rijksoverheid.nl/onderwerpen/zorgverzekering",
-            "https://www.rijksoverheid.nl/onderwerpen/verkeersveiligheid",
-            "https://www.rijksoverheid.nl/onderwerpen/basisonderwijs",
+            "https://www.rijksoverheid.nl/themas/migratie-en-reizen/paspoort-en-identiteitskaart",
+            "https://www.rijksoverheid.nl/themas/bouwen-en-wonen/woning-huren",
+            "https://www.rijksoverheid.nl/themas/familie-zorg-en-gezondheid/zorgverzekering",
+            "https://www.rijksoverheid.nl/themas/verkeer-en-vervoer/verkeersveiligheid",
+            "https://www.rijksoverheid.nl/themas/onderwijs/basisonderwijs",
+            "https://www.rijksoverheid.nl/themas/familie-zorg-en-gezondheid/persoonsgebonden-budget-pgb",
+            "https://www.rijksoverheid.nl/themas/familie-zorg-en-gezondheid/leven-met-een-beperking",
+            "https://www.rijksoverheid.nl/themas/familie-zorg-en-gezondheid/eenzaamheid",
+            "https://www.rijksoverheid.nl/themas/familie-zorg-en-gezondheid/achttien-jaar-worden",
+            "https://www.rijksoverheid.nl/themas/familie-zorg-en-gezondheid/roken",
+            "https://www.rijksoverheid.nl/themas/migratie-en-reizen/vakantie-en-reizen",
+            "https://www.rijksoverheid.nl/themas/onderwijs/leven-lang-ontwikkelen",
+            "https://www.rijksoverheid.nl/themas/bouwen-en-wonen/woningbouw",
+            "https://www.rijksoverheid.nl/themas/verkeer-en-vervoer/wegen",
         ),
     ),
     Source(
@@ -139,6 +152,27 @@ SOURCES: tuple[Source, ...] = (
             "https://www.cbs.nl/nl-nl/nieuws/2026/18/minder-vacatures-in-eerste-kwartaal-van-2026",
             "https://www.cbs.nl/nl-nl/nieuws/2026/31/economie-groeit-met-0-4-procent-in-tweede-kwartaal-2026",
             "https://www.cbs.nl/nl-nl/nieuws/2026/05/economie-groeit-in-vierde-kwartaal-2025-met-0-5-procent",
+            "https://www.cbs.nl/nl-nl/nieuws/2026/18/minder-vacatures-in-eerste-kwartaal-van-2026",
+            "https://www.cbs.nl/nl-nl/nieuws/2026/27/economie-groeit-met-0-2-procent-in-eerste-kwartaal-2026",
+        ),
+    ),
+    Source(
+        name="belastingdienst",
+        licence="CC0-1.0",
+        author="Belastingdienst",
+        note=(
+            "Dutch tax administration. CC0 1.0, stated on its own copyright page: `Op de "
+            "tekst van belastingdienst.nl is de Creative Commons Zero verklaring (CC0 "
+            "Public Domain) van toepassing`. Formal `u` over money and obligation, a voice "
+            "no other declared source writes in."
+        ),
+        urls=(
+            "https://www.belastingdienst.nl/wps/wcm/connect/nl/betalenenontvangen/content/problemen-met-betalen",
+            "https://www.belastingdienst.nl/wps/wcm/connect/nl/aftrek-en-kortingen/content/gift-aftrekken",
+            "https://www.belastingdienst.nl/wps/wcm/connect/nl/aftrek-en-kortingen/content/anbi-status-controleren",
+            "https://www.belastingdienst.nl/wps/wcm/connect/nl/aftrek-en-kortingen/content/kosten-voor-anbi-aftrekken-als-gift",
+            "https://www.belastingdienst.nl/wps/wcm/connect/nl/aftrek-en-kortingen/content/heffingskortingen-laten-uitbetalen",
+            "https://www.belastingdienst.nl/wps/wcm/connect/nl/belastingaangifte/content/aangiftechecklist",
         ),
     ),
 )
@@ -216,11 +250,23 @@ class _Paragraphs(HTMLParser):
             self._buffer.append(data)
 
 
-def fetch(url: str, *, timeout: int = 20) -> str:
+class Fetched(NamedTuple):
+    """A page, and the URL it actually came from.
+
+    The two differ whenever a site reorganises, and ADR-0007 wants an entry's url to
+    resolve to the quote for a reader checking it. Recording the requested URL would
+    record where the text used to live.
+    """
+
+    text: str
+    url: str
+
+
+def fetch(url: str, *, timeout: int = 20) -> Fetched:
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310
         charset = response.headers.get_content_charset() or "utf-8"
-        return response.read().decode(charset, errors="replace")
+        return Fetched(response.read().decode(charset, errors="replace"), response.url)
 
 
 def paragraphs_from(html: str, *, within: str = "") -> list[str]:
@@ -315,7 +361,23 @@ def existing_texts() -> set[str]:
     return {entry.text for entry in corpus.load(path)} if path.exists() else set()
 
 
-def collect(source: Source, limit: int) -> list[dict[str, object]]:
+def wanted(text: str, seen: set[str], contains: re.Pattern[str] | None) -> bool:
+    """Whether this paragraph is worth a person's attention.
+
+    `contains` is how the near-misses get found rather than written. A corpus proves a
+    verdict check does not cry wolf only if it holds the cases that would make a naive
+    version of it fire, and ADR-0007 forbids composing those here: text written to pass
+    the gate is the circularity the gate exists to prevent. So they are searched for in
+    text somebody else already wrote.
+    """
+    if text in seen or corpus.near_duplicate(text, seen):
+        return False
+    return contains is None or bool(contains.search(text))
+
+
+def collect(
+    source: Source, limit: int, contains: re.Pattern[str] | None = None
+) -> list[dict[str, object]]:
     seen = existing_texts()
     today = date.today().isoformat()
     candidates: list[dict[str, object]] = []
@@ -323,15 +385,16 @@ def collect(source: Source, limit: int) -> list[dict[str, object]]:
         if len(candidates) >= limit:
             break
         try:
-            found = paragraphs_from(fetch(url))
+            page = fetch(url)
         except Exception as exc:
             console.warn(f"{url}: {exc}")
             continue
-        console.note(f"{len(found)} usable paragraph(s) from {url}")
+        found = paragraphs_from(page.text)
+        console.note(f"{len(found)} usable paragraph(s) from {page.url}")
         for text in found:
             if len(candidates) >= limit:
                 break
-            if text in seen:
+            if not wanted(text, seen, contains):
                 continue
             seen.add(text)
             candidates.append(
@@ -344,14 +407,16 @@ def collect(source: Source, limit: int) -> list[dict[str, object]]:
                     "source": source.name,
                     "author": source.author,
                     "licence": source.licence,
-                    "url": url,
+                    "url": page.url,
                     "retrieved": today,
                 }
             )
     return candidates
 
 
-def collect_indexed(source: SearchSource, limit: int, keyword: str) -> list[dict[str, object]]:
+def collect_indexed(
+    source: SearchSource, limit: int, keyword: str, contains: re.Pattern[str] | None = None
+) -> list[dict[str, object]]:
     seen = existing_texts()
     today = date.today().isoformat()
     candidates: list[dict[str, object]] = []
@@ -362,7 +427,7 @@ def collect_indexed(source: SearchSource, limit: int, keyword: str) -> list[dict
     start = 1
     while len(candidates) < limit and read < MAX_PAGES:
         try:
-            records = index_records(fetch(search_url(source, keyword, start)))
+            records = index_records(fetch(search_url(source, keyword, start)).text)
         except Exception as exc:
             console.warn(f"{source.name}: {exc}")
             break
@@ -379,10 +444,11 @@ def collect_indexed(source: SearchSource, limit: int, keyword: str) -> list[dict
             time.sleep(PAUSE)
             read += 1
             try:
-                html = fetch(url)
+                page = fetch(url)
             except Exception as exc:
                 console.warn(f"{url}: {exc}")
                 continue
+            html = page.text
             declared = page_licence(html)
             if declared != source.licence:
                 console.skip(url, f"page declares {declared or 'no licence'}")
@@ -398,7 +464,7 @@ def collect_indexed(source: SearchSource, limit: int, keyword: str) -> list[dict
             for text in found:
                 if len(candidates) >= limit:
                     break
-                if text in seen:
+                if not wanted(text, seen, contains):
                     continue
                 seen.add(text)
                 candidates.append(
@@ -411,7 +477,7 @@ def collect_indexed(source: SearchSource, limit: int, keyword: str) -> list[dict
                         "source": source.host,
                         "author": ", ".join(record.authors),
                         "licence": source.licence,
-                        "url": url,
+                        "url": page.url,
                         "retrieved": today,
                     }
                 )
@@ -425,6 +491,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--source", help="which declared source to fetch")
     parser.add_argument("--limit", type=int, default=25)
     parser.add_argument("--keyword", default="", help="narrow a searched source to a subject")
+    parser.add_argument(
+        "--contains",
+        default="",
+        help="keep only paragraphs matching this regex, for hunting a check's near-miss",
+    )
     parser.add_argument("--list", action="store_true", help="show the declared sources")
     args = parser.parse_args(argv)
 
@@ -441,16 +512,17 @@ def main(argv: list[str] | None = None) -> int:
         console.note("Dutch Wikipedia is excluded: CC BY-SA is share-alike (ADR-0007).")
         return 0
 
+    contains = re.compile(args.contains, re.IGNORECASE) if args.contains else None
     matched = next((s for s in SOURCES if s.name == args.source), None)
     searched = next((s for s in SEARCH_SOURCES if s.name == args.source), None)
     if searched is not None:
         console.banner(
             "meetlat · corpus candidates", f"{searched.name}  {args.keyword or 'all subjects'}"
         )
-        candidates = collect_indexed(searched, args.limit, args.keyword)
+        candidates = collect_indexed(searched, args.limit, args.keyword, contains)
     elif matched is not None:
         console.banner("meetlat · corpus candidates", matched.name)
-        candidates = collect(matched, args.limit)
+        candidates = collect(matched, args.limit, contains)
     else:
         console.fail(f"unknown source {args.source!r}; see --list")
         return 1
