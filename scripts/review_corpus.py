@@ -154,6 +154,10 @@ def render(
     )
     console.say()
     console.note(f"proposed: register {proposed}   domain {candidate.get('domain')}")
+    if meaning := corpus.REGISTER_MEANS.get(proposed):
+        console.line(f"{C.dim}{proposed}: {meaning.means}{C.reset}", indent=4)
+    if meaning := corpus.DOMAIN_MEANS.get(str(candidate.get("domain"))):
+        console.line(f"{C.dim}{candidate.get('domain')}: {meaning.means}{C.reset}", indent=4)
     console.note(f"{proposed}: {counts.get(proposed, 0)} of {PER_REGISTER}")
 
 
@@ -176,6 +180,14 @@ def append(entry: corpus.CorpusEntry, path: Path) -> None:
         handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
 
 
+class Stopped(Exception):
+    """Input ended or the reader asked to stop.
+
+    Raised rather than returned so it unwinds out of a nested picker instead of being
+    mistaken there for an answer.
+    """
+
+
 def key(choices: dict[str, str]) -> str:
     """One keystroke, without waiting for Enter where the terminal allows it.
 
@@ -188,17 +200,25 @@ def key(choices: dict[str, str]) -> str:
     )
     print(f"\n  {legend}")
     while True:
-        pressed = (_read_key() or "").lower()
-        if pressed in choices:
-            return pressed
-        if pressed in {"\x03", "\x04"}:  # ctrl-c, ctrl-d: quitting is always available
-            return "q" if "q" in choices else next(iter(choices))
+        pressed = _read_key()
+        # End of input, ctrl-c or ctrl-d. Without this the loop spins forever on a
+        # closed stdin, which is every non-interactive run that runs out of answers.
+        # Where quitting is on offer it is the answer, so the run ends with its summary
+        # rather than by unwinding; inside a picker there is nothing to quit to, so it
+        # gives up on the choice instead.
+        if pressed is None or pressed in {"\x03", "\x04"}:
+            if "q" in choices:
+                return "q"
+            raise Stopped
+        if (chosen := pressed.lower()) in choices:
+            return chosen
         console.warn(f"press one of: {', '.join(choices)}")
 
 
-def _read_key() -> str:
+def _read_key() -> str | None:
     if not sys.stdin.isatty():
-        return sys.stdin.readline().strip()[:1]
+        line = sys.stdin.readline()
+        return line.strip()[:1] if line else None
     import termios
     import tty
 
@@ -206,20 +226,47 @@ def _read_key() -> str:
     previous = termios.tcgetattr(descriptor)
     try:
         tty.setraw(descriptor)
-        return sys.stdin.read(1)
+        return sys.stdin.read(1) or None
     finally:
         termios.tcsetattr(descriptor, termios.TCSADRAIN, previous)
 
 
-def pick(label: str, options: list[str], current: str) -> str:
-    """Choose from a short list by number, showing which one is already proposed."""
+def pick(
+    label: str, options: list[str], current: str, meanings: dict[str, Any] | None = None
+) -> str:
+    """Choose from a short list by number, with each option saying what it means.
+
+    The names alone do not decide anything: `business` and `plain_language` are both
+    unaddressed prose, and choosing between them from two words is guesswork. So each
+    option carries its definition and a paragraph that is unmistakably it, which is
+    the part that actually settles a borderline case.
+    """
     console.say()
     console.note(f"{label}:")
+    width = max(len(option) for option in options)
     for index, option in enumerate(options, start=1):
         marker = f"{C.green}●{C.reset}" if option == current else " "
-        console.line(f"{marker} {index}  {option}", indent=4)
+        meaning = (meanings or {}).get(option)
+        console.line(f"{marker} {index}  {C.bold}{option.ljust(width)}{C.reset}", indent=4)
+        if meaning is not None:
+            console.line(f"{C.dim}{meaning.means}{C.reset}", indent=11)
+            console.line(f'{C.dim}e.g. "{meaning.like}"{C.reset}', indent=11)
     keys = {str(i): options[i - 1] for i in range(1, len(options) + 1)}
-    return keys[key({k: v for k, v in keys.items()})]
+    return keys[key(dict(keys))]
+
+
+def vocabulary() -> None:
+    """Both tag lists with their definitions, for when the names are not enough."""
+    for label, options, meanings in (
+        ("register", REGISTERS, corpus.REGISTER_MEANS),
+        ("domain", DOMAINS, corpus.DOMAIN_MEANS),
+    ):
+        console.heading(label)
+        width = max(len(option) for option in options)
+        for option in options:
+            meaning = meanings[option]
+            console.line(f"{C.bold}{option.ljust(width)}{C.reset}  {meaning.means}", indent=2)
+            console.line(f'{C.dim}e.g. "{meaning.like}"{C.reset}', indent=4 + width)
 
 
 def bar(count: int, floor: int = PER_REGISTER, width: int = 12) -> str:
@@ -361,9 +408,13 @@ def main(argv: list[str] | None = None) -> int:
                 "d": "domain",
                 "s": "skip",
                 "u": "undo last",
+                "?": "what the tags mean",
                 "q": "quit",
             }
         )
+        if choice == "?":
+            vocabulary()
+            continue
         if choice == "q":
             break
         if choice == "s":
@@ -380,12 +431,22 @@ def main(argv: list[str] | None = None) -> int:
             console.warn(f"removed {removed} from the corpus; this candidate is unchanged")
             continue
         if choice in {"r", "d"}:
-            field, options = ("register", REGISTERS) if choice == "r" else ("domain", DOMAINS)
-            candidate[field] = pick(field, options, str(candidate[field]))
+            field, options, meanings = (
+                ("register", REGISTERS, corpus.REGISTER_MEANS)
+                if choice == "r"
+                else ("domain", DOMAINS, corpus.DOMAIN_MEANS)
+            )
+            try:
+                candidate[field] = pick(field, options, str(candidate[field]), meanings)
+            except Stopped:
+                console.warn(f"{field} left as {candidate[field]}")
             continue
         if choice == "n":
             reasons = ["not natural Dutch", "wrong register", "not interesting", "a duplicate idea"]
-            _reject(candidate, pick("why", reasons, ""), rejects)
+            try:
+                _reject(candidate, pick("why", reasons, ""), rejects)
+            except Stopped:
+                break
             rejected += 1
             index += 1
             continue

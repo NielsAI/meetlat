@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 import review_corpus
 
 from meetlat.zeef import corpus
@@ -151,3 +152,21 @@ def test_comment_lines_are_not_candidates(tmp_path: Path) -> None:
     batch = tmp_path / "b.jsonl"
     batch.write_text('// a note\n{"text": "x"}\n', encoding="utf-8")
     assert review_corpus.read_candidates(batch) == [{"text": "x"}]
+
+
+def test_every_tag_a_reviewer_can_choose_says_what_it_means() -> None:
+    """The picker shows these, so a tag without one is a blank line where the choice is made."""
+    assert set(review_corpus.REGISTERS) <= set(corpus.REGISTER_MEANS)
+    assert set(review_corpus.DOMAINS) <= set(corpus.DOMAIN_MEANS)
+    for meaning in {**corpus.REGISTER_MEANS, **corpus.DOMAIN_MEANS}.values():
+        assert meaning.means and meaning.like
+
+
+def test_input_that_runs_out_stops_the_review_rather_than_spinning(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A closed stdin used to loop forever, which is every under-answered scripted run."""
+    monkeypatch.setattr(review_corpus, "_read_key", lambda: None)
+    assert review_corpus.key({"y": "accept", "q": "quit"}) == "q"
+    with pytest.raises(review_corpus.Stopped):
+        review_corpus.key({"1": "one", "2": "two"})
