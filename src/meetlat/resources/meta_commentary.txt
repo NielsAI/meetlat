@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: CC-BY-4.0
+# Origin: authored for meetlat
+# The assistant talking about being an assistant. One phrase per line, lowercase,
+# matched as a whole-word substring.
+#
+# Safe to automate because none of these is something a Dutch writer produces while
+# doing the task that was asked. A response that mentions its own model nature has
+# stopped answering the prompt.
+als ai-model
+als ai model
+als een ai-model
+als taalmodel
+als een taalmodel
+ik ben een ai
+ik ben een taalmodel
+als ai kan ik
+als ai heb ik
+ik ben slechts een taalmodel
+mijn trainingsdata
+mijn trainingsgegevens
+mijn kennis loopt tot
+ik heb geen toegang tot het internet
+ik heb geen toegang tot internet
+ik heb geen realtime toegang

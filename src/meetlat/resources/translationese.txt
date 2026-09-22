@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: CC-BY-4.0
+# Origin: authored for meetlat
+# Calques: English phrasing carried into Dutch word for word. One phrase per line,
+# lowercase, matched as a whole-word substring.
+#
+# The bar for adding a line is high on purpose (ADR-0002). A phrase belongs here
+# only if a Dutch writer would not produce it unprompted in ANY register. Phrases
+# that are merely common in machine output but defensible in Dutch stay out, and
+# some near-misses are listed at the bottom with the reason, so nobody re-proposes
+# them.
+laten we erin duiken
+laten we duiken in
+een diepe duik
+ik hoop dat dit helpt
+ik hoop dat dit nuttig is
+voel je vrij om
+voelt u zich vrij om
+dat gezegd hebbende
+ik waardeer je vraag
+ik waardeer uw vraag
+
+# Rejected, and why:
+# "aan het einde van de dag"        - also literally true of an actual day
+# "het is belangrijk om op te merken" - stilted, but native Dutch writers do use it
+# "laat me weten of je vragen hebt" - standard Dutch service-desk closing
