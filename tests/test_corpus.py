@@ -76,3 +76,38 @@ def test_a_malformed_line_names_its_line_number(tmp_path: Path) -> None:
     )
     with pytest.raises(ValueError, match="corpus.jsonl:2"):
         corpus.load(path)
+
+
+def test_shape_counts_entries_too_short_to_be_the_paragraphs_they_are_counted_as() -> None:
+    """An exit condition stated in paragraphs is not met by single sentences (ADR-0007)."""
+    long_enough = {
+        **VALID,
+        "id": "nl-9002",
+        "text": (
+            "De gemeente stuurt binnen vijf werkdagen een bevestiging per e-mail. Daarin "
+            "staat welke gegevens zijn ontvangen en wanneer u een besluit kunt verwachten."
+        ),
+    }
+    short = {**VALID, "id": "nl-9003", "text": "Kort bericht."}
+    measured = corpus.shape(
+        [
+            corpus.CorpusEntry.model_validate(long_enough),
+            corpus.CorpusEntry.model_validate(short),
+        ]
+    )
+    assert len(long_enough["text"]) >= corpus.MIN_CHARS
+    assert measured["below_floor"] == 1
+    assert measured["words"] == len(long_enough["text"].split()) + 2
+
+
+def test_an_attribution_licence_needs_someone_to_attribute() -> None:
+    """CC BY requires retaining the creator, and the site it was found on is not that."""
+    collected = {**VALID, "origin": "collected", "licence": "CC-BY-4.0"}
+    with pytest.raises(ValueError, match="requires naming who wrote the text"):
+        corpus.CorpusEntry.model_validate(collected)
+    assert corpus.CorpusEntry.model_validate({**collected, "author": "Anne de Vries"})
+
+
+def test_cc0_text_needs_no_author_because_attribution_is_waived() -> None:
+    collected = {**VALID, "origin": "collected", "licence": "CC0-1.0"}
+    assert corpus.CorpusEntry.model_validate(collected).author == ""

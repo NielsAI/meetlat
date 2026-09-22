@@ -42,7 +42,7 @@ exists and passes `make check-judges`.** Do not write copy that implies otherwis
 | A phrase that marks translationese or meta-commentary | `src/meetlat/resources/*.txt` | Never inline in code. A rejected phrase goes in that file's rejected block with the reason |
 | A judge prompt or card | `judges/<criterion>/v<n>/` | Versioned. A changed prompt is a new judge (ADR-0003) |
 | Hand labels | `gold/<criterion>-v<n>.jsonl` | **By a person, never by an agent.** A fail-closed guard enforces it |
-| A paragraph of clean Dutch | `tests/corpora/clean_nl.jsonl` | With its provenance, licence and register (ADR-0007). Collected by an agent, **never written by one**: that would make the false-positive gate circular. `scripts/collect_corpus.py` fetches candidates |
+| A paragraph of clean Dutch | `tests/corpora/clean_nl.jsonl` | With its provenance, licence and register (ADR-0007). Collected by an agent, **never written by one**: that would make the false-positive gate circular. `scripts/collect_corpus.py` fetches candidates. Where the licence asks for credit, `author` names who wrote it and `source` only says where it was found (ADR-0009) |
 | An explanation of why code is the way it is | a docstring in that code | Not a narration of the edit; the history covers that |
 | Domain vocabulary | `CONTEXT.md` | Use its exact words everywhere |
 
@@ -113,7 +113,7 @@ Bottom up, because each layer is useful before the next exists (ADR-0001).
 
 | Step | Output | Done |
 | --- | --- | --- |
-| 1 | Layer 1 as a package: checks, wordlists, fixtures, contract gate | ◐ 6 of 7 checks, and the corpus is 28 paragraphs against an exit condition of 200 |
+| 1 | Layer 1 as a package: checks, wordlists, fixtures, contract gate | ◐ 6 of 7 checks, and the corpus is 28 entries against an exit condition of 200 paragraphs, 17 of them below the 80-character floor for what counts as one |
 | 2 | Taxonomy plus prompt generator | ✘ ADR-0005 records the decision; no code |
 | 3 | A hand-labelled set for one criterion, two annotators | ✘ schema and guard exist, no labels |
 | 4 | First calibrated judge plus the written protocol | ◐ protocol and gate exist, no judge |

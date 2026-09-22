@@ -30,6 +30,7 @@ fixture tree. Exits 1 on any finding.
 from __future__ import annotations
 
 import argparse
+import gzip
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -88,19 +89,33 @@ def _audit_resource_licences(repo_root: Path, out: list[Finding]) -> None:
     fails the build.
     """
     notice = (repo_root / "NOTICE").read_text(encoding="utf-8")
-    for path in sorted((repo_root / "src" / "meetlat" / "resources").glob("*.txt")):
+    for path in sorted((repo_root / "src" / "meetlat" / "resources").iterdir()):
+        if path.is_dir() or path.suffix == ".py":
+            continue
         where = f"src/meetlat/resources/{path.name}"
-        header = "\n".join(
-            line
-            for line in path.read_text(encoding="utf-8").splitlines()[:5]
-            if line.startswith("#")
-        )
+        header = _resource_header(path)
+        name = path.name.split(".")[0]
         if "SPDX-License-Identifier:" not in header:
             out.append(Finding(where, "no `# SPDX-License-Identifier:` in the first lines"))
         if "Origin:" not in header:
             out.append(Finding(where, "no `# Origin:` saying whether this list was vendored"))
-        elif "Origin: vendored" in header and path.stem not in notice:
-            out.append(Finding(where, f"vendored but {path.stem!r} does not appear in NOTICE"))
+        elif "Origin: vendored" in header and name not in notice:
+            out.append(Finding(where, f"vendored but {name!r} does not appear in NOTICE"))
+
+
+def _resource_header(path: Path) -> str:
+    """The comment lines a resource opens with, compressed or not.
+
+    ADR-0008 stores the OpenTaal list gzipped, and a gate that only globbed `*.txt`
+    would not see the one file that ADR is about: the check would pass by not looking.
+    The extension decides how to read a resource, never whether to.
+    """
+    if path.suffix == ".gz":
+        with gzip.open(path, "rt", encoding="utf-8", errors="replace") as handle:
+            text = handle.read(4096)
+    else:
+        text = path.read_text(encoding="utf-8", errors="replace")[:4096]
+    return "\n".join(line for line in text.splitlines()[:5] if line.startswith("#"))
 
 
 def audit(repo_root: Path) -> list[Finding]:
@@ -160,11 +175,18 @@ def main(argv: list[str] | None = None) -> int:
     findings = audit(args.root)
     if not findings:
         entries = corpus.load(corpus_path(args.root))
-        console.ok(f"zeef contract ok · {len(zeef.CHECKS)} checks · {len(entries)} paragraphs")
+        console.ok(f"zeef contract ok · {len(zeef.CHECKS)} checks · {len(entries)} corpus entries")
         counts = corpus.coverage(entries)
         console.note(
             "corpus by register: "
             + "  ".join(f"{register} {count}" for register, count in counts.items())
+        )
+        # An entry counted as a paragraph while being shorter than one is how a corpus
+        # reads as several times the evidence it is, so the shortfall is printed.
+        measured = corpus.shape(entries)
+        console.note(
+            f"corpus shape: {measured['words']} words, {measured['below_floor']} of "
+            f"{len(entries)} below the {corpus.MIN_CHARS}-character paragraph floor"
         )
         # An empty register is named, not left to be inferred from a total (ADR-0007).
         if empty := [register for register, count in counts.items() if count == 0]:

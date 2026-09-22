@@ -32,12 +32,25 @@ Domain = Literal["administrative", "commercial", "technical", "care", "education
 #: model-generated text makes the gate circular (ADR-0007).
 Origin = Literal["collected", "authored"]
 
+#: What counts as a paragraph. Below this is a heading, a label or a navigation crumb;
+#: above it is usually two paragraphs an extractor failed to split. The exit condition
+#: for this corpus is stated in paragraphs, so the floor is written down here where both
+#: the collector and the gate read it, rather than being a constant in whichever script
+#: happened to need it first.
+MIN_CHARS = 80
+MAX_CHARS = 400
+
 #: Licences whose text this project may redistribute under CC BY 4.0. CC BY-SA is
 #: absent on purpose: share-alike would force this repository's data licence to
 #: change, which rules out Dutch Wikipedia and most of what is easy to scrape.
 REDISTRIBUTABLE: frozenset[str] = frozenset(
     {"CC0-1.0", "CC-BY-4.0", "CC-BY-3.0", "LicenseRef-PublicDomain"}
 )
+
+#: Licences that make naming the creator a condition of passing the text on. CC0 and
+#: the public domain waive it, and they are the only reason a collected paragraph is
+#: ever allowed to leave `author` empty.
+ATTRIBUTION_REQUIRED: frozenset[str] = REDISTRIBUTABLE - {"CC0-1.0", "LicenseRef-PublicDomain"}
 
 
 # `register` is this project's vocabulary (CONTEXT.md) and the key the corpus file
@@ -59,6 +72,10 @@ with warnings.catch_warnings():
         origin: Origin
         #: Human-readable name of where this came from: a site, a publication, a person.
         source: str = Field(min_length=1)
+        #: Who wrote it, which is who a reuser owes credit to. Not the same as `source`:
+        #: an index or a platform is where a paragraph was found, and CC BY requires
+        #: retaining identification of the creator rather than of the finder.
+        author: str = ""
         licence: str = Field(min_length=1)
         #: Resolvable by a reader who wants to check the quote. Required for collected
         #: text; an authored paragraph has nowhere to point.
@@ -74,6 +91,12 @@ with warnings.catch_warnings():
                 )
             if self.origin == "collected" and not (self.url and self.retrieved):
                 raise ValueError(f"{self.id}: collected text needs a url and a retrieved date")
+            if self.origin == "collected" and self.licence in ATTRIBUTION_REQUIRED:
+                if not self.author:
+                    raise ValueError(
+                        f"{self.id}: {self.licence} requires naming who wrote the text, and "
+                        f"the site it was found on is not that"
+                    )
             return self
 
 
@@ -100,3 +123,17 @@ def coverage(entries: list[CorpusEntry]) -> dict[Register, int]:
     """
     counted = Counter(entry.register for entry in entries)
     return {register: counted.get(register, 0) for register in get_args(Register)}
+
+
+def shape(entries: list[CorpusEntry]) -> dict[str, int]:
+    """Words, and how many entries are shorter than the paragraphs they are counted as.
+
+    A count of entries is the number that flatters: an exit condition of 200 paragraphs
+    met with 200 single sentences is not the evidence it reads as. So the entries below
+    `MIN_CHARS` are counted rather than left to pass as paragraphs, by the same floor
+    the collector applies when it refuses a string as too short to be one.
+    """
+    return {
+        "words": sum(len(entry.text.split()) for entry in entries),
+        "below_floor": sum(1 for entry in entries if len(entry.text) < MIN_CHARS),
+    }
