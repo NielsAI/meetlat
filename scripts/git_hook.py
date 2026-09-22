@@ -54,38 +54,36 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     targets = PLANS[args.hook]
-    console.heading(f"{args.hook} · {len(targets)} step{'s' if len(targets) != 1 else ''}")
+    console.banner(args.hook, f"{len(targets)} step{'s' if len(targets) != 1 else ''}")
     started = time.monotonic()
 
     for index, target in enumerate(targets, start=1):
-        step_started = time.monotonic()
-        result = subprocess.run(
-            ["make", target],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        elapsed = f"{time.monotonic() - step_started:.1f}s"
-        label = f"{C.dim}[{index}/{len(targets)}]{C.reset} make {target}"
+        label = f"make {target}"
+        with console.Spinner(label) as spinner:
+            result = subprocess.run(
+                ["make", target], cwd=REPO_ROOT, capture_output=True, text=True, check=False
+            )
+            elapsed = console.duration(spinner.elapsed)
+
+        prefix = f"{console.counter(index, len(targets))} {label}"
         if result.returncode == 0:
-            console.ok(f"{label}  {C.dim}{elapsed}{C.reset}")
+            console.ok(f"{prefix}  {C.dim}{elapsed}{C.reset}")
             continue
 
-        console.bad(f"{label}  {C.dim}{elapsed}{C.reset}")
-        console.say()
-        for line in (result.stdout + result.stderr).splitlines():
-            console.line(line, indent=4)
-        console.say()
+        console.bad(f"{prefix}  {C.dim}{elapsed}{C.reset}")
+        console.box((result.stdout + result.stderr).rstrip(), title=label)
         # Fail fast: the later steps would report the same root cause, and the fix gets
         # applied once rather than after each of them has had its turn.
+        skipped = len(targets) - index
+        if skipped:
+            console.note(f"{skipped} later step(s) not run", stderr=True)
         console.bad(
             f"{args.hook} blocked · fix the above, or bypass with "
             f"{C.bold}--no-verify{C.reset} if you know why"
         )
         return 1
 
-    console.ok(f"{args.hook} ok · {time.monotonic() - started:.1f}s")
+    console.ok(f"{args.hook} ok · {console.duration(time.monotonic() - started)}")
     return 0
 
 

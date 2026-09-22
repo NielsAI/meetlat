@@ -70,7 +70,7 @@ def _render_findings(report: ZeefReport, result: CheckResult, limit: int) -> Non
 
 
 def render(report: ZeefReport, source: str, limit: int) -> None:
-    console.heading(f"meetlat · zeef · {source}")
+    console.banner("meetlat · zeef", source)
     for result in report.results:
         if result.kind == "distribution":
             numbers = "  ".join(f"{k} {v:g}" for k, v in result.metrics.items())
@@ -116,13 +116,14 @@ def _as_dict(report: ZeefReport) -> dict[str, object]:
 
 
 def _list_checks() -> int:
-    console.heading("meetlat · checks")
+    console.banner(
+        "meetlat · checks",
+        f"{len(zeef.CHECKS)} registered, {len(zeef.PLANNED)} designed but not built",
+    )
     console.table(
         [(c.name, c.kind, c.description) for c in zeef.CHECKS]
         + [(name, "planned", blocker) for name, blocker in zeef.PLANNED.items()]
     )
-    console.say()
-    console.note(f"{len(zeef.CHECKS)} registered, {len(zeef.PLANNED)} designed but not built")
     return 0
 
 

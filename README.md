@@ -44,7 +44,7 @@ echo "Beste klant, u kunt uw bestelling annuleren. Laten we erin duiken, dan wee
 ```
 
 ```text
-meetlat · zeef · stdin
+⬢ meetlat · zeef  stdin
   ✘ register_consistency    4 findings
       1:14  'u' is formal, and this response uses both.
         Beste klant, u kunt uw bestelling annu…
