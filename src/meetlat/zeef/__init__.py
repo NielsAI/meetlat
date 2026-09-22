@@ -23,6 +23,7 @@ from meetlat.zeef.checks.phrase_checks import meta_commentary, translationese
 from meetlat.zeef.checks.register_consistency import register_consistency
 from meetlat.zeef.checks.self_repetition import self_repetition
 from meetlat.zeef.checks.sentence_length import sentence_length
+from meetlat.zeef.checks.spelling import spelling
 
 CHECKS: Final[tuple[Check, ...]] = (
     register_consistency,
@@ -31,15 +32,11 @@ CHECKS: Final[tuple[Check, ...]] = (
     self_repetition,
     sentence_length,
     anglicism_density,
+    spelling,
 )
 
 #: Designed in ADR-0001, not yet built. Each line says what it still needs.
-PLANNED: Final[dict[str, str]] = {
-    "spelling": (
-        "a distribution reporting out-of-vocabulary rate, not a verdict (ADR-0008); "
-        "needs OpenTaal vendored compressed, plus a compound decomposer"
-    ),
-}
+PLANNED: Final[dict[str, str]] = {}
 
 
 def check_by_name(name: str) -> Check:

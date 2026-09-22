@@ -1,0 +1,30 @@
+{
+  "check": "spelling",
+  "kind": "distribution",
+  "metrics": [
+    {
+      "text": "Beste klant, uw bestelling is verzonden. Neem contact op bij vragen over de bezorging.",
+      "expect": {"words": 14, "out_of_vocabulary": 0, "distinct": 0, "per_1000": 0}
+    },
+    {
+      "text": "We hebben het evaluatieharnas voor dit project zorgvuldig ontworpen en getest.",
+      "expect": {"words": 11, "out_of_vocabulary": 0, "distinct": 0, "per_1000": 0}
+    },
+    {
+      "text": "Het evaluatiehuisdier was een verrassende metafoor in het interne rapport.",
+      "expect": {"words": 10, "out_of_vocabulary": 0, "distinct": 0, "per_1000": 0}
+    },
+    {
+      "text": "Er kan verwarring onstaan door dit voorstel, teh planning moet duidelijker.",
+      "expect": {"words": 11, "out_of_vocabulary": 2, "distinct": 2, "per_1000": 181.82}
+    },
+    {
+      "text": "De vergadering begint om 14 uur en duurt 2 uur, inclusief een pauze van 10 minuten.",
+      "expect": {"words": 13, "out_of_vocabulary": 0, "distinct": 0, "per_1000": 0}
+    },
+    {
+      "text": "",
+      "expect": {"words": 0}
+    }
+  ]
+}

@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from meetlat import cli
+from meetlat import cli, zeef
 
 CLEAN = "Wij hebben uw aanvraag ontvangen en nemen binnen vijf werkdagen contact met u op."
 MIXED = "Beste klant, u kunt uw bestelling annuleren. Laat maar weten of jij dat wilt."
@@ -62,8 +62,21 @@ def test_an_unknown_check_fails_loudly(tmp_path) -> None:
         cli.main(["zeef", str(path), "--only", "geen_check"])
 
 
-def test_checks_lists_the_planned_ones(capsys: pytest.CaptureFixture[str]) -> None:
-    """A gap in the designed set is visible, not an absence nobody noticed."""
+def test_checks_lists_the_registered_ones(capsys: pytest.CaptureFixture[str]) -> None:
     assert cli.main(["checks"]) == 0
     out = capsys.readouterr().out
-    assert "anglicism_density" in out and "planned" in out
+    assert "anglicism_density" in out and "spelling" in out
+
+
+def test_checks_lists_the_planned_ones(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A gap in the designed set is visible, not an absence nobody noticed.
+
+    All seven layer-1 checks are built, so `zeef.PLANNED` is empty; this fakes an
+    entry to prove the row still renders once the architecture calls for an eighth.
+    """
+    monkeypatch.setitem(zeef.PLANNED, "voorbeeld", "not real, just here to render")
+    assert cli.main(["checks"]) == 0
+    out = capsys.readouterr().out
+    assert "voorbeeld" in out and "planned" in out
