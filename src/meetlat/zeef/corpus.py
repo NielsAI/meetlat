@@ -15,6 +15,7 @@ import json
 import warnings
 from collections import Counter
 from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import date
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -28,6 +29,70 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 Register = Literal["informal_je", "formal_u", "business", "plain_language"]
 
 Domain = Literal["administrative", "commercial", "technical", "care", "education", "everyday"]
+
+
+@dataclass(frozen=True)
+class Meaning:
+    """What a tag means, and one paragraph that is unmistakably it.
+
+    The example does the work the definition cannot. `business` and `plain_language`
+    are both unaddressed prose and the boundary between them is not obvious from two
+    words, but nobody mistakes a board's decision for a train's departure time.
+    """
+
+    means: str
+    like: str
+
+
+#: Every `Register` value, defined. `make check-zeef` fails if one is missing, because a
+#: tag with no definition gets applied differently in the first hour of review than in
+#: the third, and 200 paragraphs tagged by a drifting rule are not one corpus.
+REGISTER_MEANS: dict[str, Meaning] = {
+    "informal_je": Meaning(
+        "addresses the reader as je, jij or jouw",
+        "Je kunt je bestelling tot 24 uur na plaatsing kosteloos annuleren via je account.",
+    ),
+    "formal_u": Meaning(
+        "addresses the reader as u or uw",
+        "U kunt bezwaar maken tegen dit besluit binnen zes weken na de verzenddatum.",
+    ),
+    "business": Meaning(
+        "professional or organisational prose, addressing nobody",
+        "Het bestuur heeft besloten de contributie dit jaar niet te verhogen.",
+    ),
+    "plain_language": Meaning(
+        "an ordinary fact for a general reader, addressing nobody, no professional setting",
+        "De trein naar Utrecht vertrekt van spoor 5 en heeft ongeveer vijf minuten vertraging.",
+    ),
+}
+
+#: Every `Domain` value, defined. Same rule, same reason.
+DOMAIN_MEANS: dict[str, Meaning] = {
+    "administrative": Meaning(
+        "dealings with government or an institution: applications, decisions, obligations",
+        "U ontvangt binnen vijf werkdagen een bevestiging van uw aanvraag.",
+    ),
+    "commercial": Meaning(
+        "buying and selling: orders, deliveries, prices, invoices",
+        "De omzet van de detailhandel lag 3,5 procent hoger dan een jaar eerder.",
+    ),
+    "technical": Meaning(
+        "software, devices, how a thing works or is configured",
+        "Deze functie werkt alleen als de server draait met versie 3.2 of hoger.",
+    ),
+    "care": Meaning(
+        "health, wellbeing, treatment and support",
+        "De patiënt gaf aan dat de klachten sinds vorige week zijn afgenomen.",
+    ),
+    "education": Meaning(
+        "teaching and learning: lessons, assignments, courses",
+        "De leerlingen krijgen volgende week een toets over de Gouden Eeuw.",
+    ),
+    "everyday": Meaning(
+        "ordinary life outside the other five: travel, cooking, household",
+        "Voeg twee eetlepels bloem toe en roer tot het mengsel glad is.",
+    ),
+}
 
 #: How the text got here. `collected` is the only scalable one; `authored` means a
 #: named person wrote it for this repository. There is deliberately no third option:

@@ -35,6 +35,7 @@ import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import get_args
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
@@ -121,6 +122,24 @@ EXERCISED_BY: dict[str, Exercise] = {
 }
 
 
+def _audit_tag_definitions(out: list[Finding]) -> None:
+    """Every register and domain says what it means.
+
+    A tag with no definition is applied differently in the first hour of review than in
+    the third, and the corpus is then tagged by a rule that drifted rather than by one
+    rule. The reviewer shows these while you choose, so an undefined tag is also a blank
+    line in the only place the choice is made.
+    """
+    for value in get_args(corpus.Register):
+        if value not in corpus.REGISTER_MEANS:
+            out.append(
+                Finding(f"register {value!r}", "no entry in REGISTER_MEANS saying what it is")
+            )
+    for value in get_args(corpus.Domain):
+        if value not in corpus.DOMAIN_MEANS:
+            out.append(Finding(f"domain {value!r}", "no entry in DOMAIN_MEANS saying what it is"))
+
+
 def _audit_exercise_rows(out: list[Finding]) -> None:
     for check in zeef.CHECKS:
         if check.kind == "verdict" and check.name not in EXERCISED_BY:
@@ -181,6 +200,7 @@ def audit(repo_root: Path) -> list[Finding]:
     registered = {check.name: check for check in zeef.CHECKS}
     _audit_resource_licences(repo_root, out)
     _audit_exercise_rows(out)
+    _audit_tag_definitions(out)
 
     for name, check in registered.items():
         if not check.description.strip():

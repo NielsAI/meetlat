@@ -55,6 +55,17 @@ taxonomy is maintained; the prompts are disposable (ADR-0005).
 **register** — the formality a Dutch text is written in: informal `je`, formal `u`, business, plain
 language. Mixing two in one response is a defect, which is what `register_consistency` catches.
 
+The four are defined with an example each in `REGISTER_MEANS`, and the six **domains** in
+`DOMAIN_MEANS`, both in `src/meetlat/zeef/corpus.py`. They live in code rather than here because
+`make review` shows them while you tag a paragraph, and `make check-zeef` fails if a register or
+domain has no definition: a tag defined nowhere gets applied one way in the first hour of review
+and another way in the third.
+
+The pair worth knowing: `business` and `plain_language` both address nobody. Business is
+professional or organisational prose (*"Het bestuur heeft besloten de contributie niet te
+verhogen"*); plain language is an ordinary fact for a general reader with no professional setting
+behind it (*"De trein naar Utrecht vertrekt van spoor 5"*).
+
 **translationese** — English phrasing carried into Dutch word for word. A calque, not a borrowing:
 `"laten we erin duiken"` is translationese, `"de computer"` is not.
 
