@@ -105,6 +105,8 @@ make help           # every target, generated from the Makefile itself
 make zeef ARGS=response.txt   # run layer 1 over a file
 make prompts ARGS="--seed 2026 --per-cell 3"   # generate a prompt set (ADR-0005)
 make run ARGS="--seed 2026 --limit 20"         # drive it through an endpoint (needs MEETLAT_*)
+make sample ARGS="runs/responses.jsonl --criterion register_fit"  # draw a labelling worklist
+make label ARGS="runs/register_fit-worklist.jsonl --annotator you"  # label it, by hand
 make checks                   # what is registered, and what is designed but unbuilt
 
 make check          # every offline gate (check-zeef, check-judges)
@@ -126,7 +128,7 @@ Bottom up, because each layer is useful before the next exists (ADR-0001).
 | --- | --- | --- |
 | 1 | Layer 1 as a package: checks, wordlists, fixtures, contract gate | ◐ all 7 checks built; the corpus is 272 entries, 254 of them above the 80-character paragraph floor, so the 200-paragraph exit condition is met and every register floor is clear. What is left is domain reach: `commercial` (21), `everyday` (19) and `care` (22) are thin, and 69% of the text is Dutch government prose |
 | 2 | Taxonomy plus prompt generator | ✔ `meetlat.taxonomy` with its gate; all 168 cells generate from 240 context documents |
-| 3 | A hand-labelled set for one criterion, two annotators | ✘ schema and guard exist, no labels. Unblocked: `meetlat run` produces the responses to label, which is why step 5 came before this one |
+| 3 | A hand-labelled set for one criterion, two annotators | ◐ schema, guard and the preparation tooling (`make sample`, `make label`) are built. **No labels, and an agent cannot produce them**: two people label blind (ADR-0004). Needs a real run first |
 | 4 | First calibrated judge plus the written protocol | ◐ protocol and gate exist, no judge |
 | 5 | Runner: endpoint to prompts to layers 1 and 2 to report | ◐ `meetlat run` drives an OpenAI-compatible endpoint and reports layer 1 per interaction type. Layer 2 waits on a calibrated judge |
 | 6 | Remaining judges, each through the same gate | ✘ |

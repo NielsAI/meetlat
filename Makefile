@@ -51,6 +51,14 @@ prompts:  ## generate an evaluation prompt set: make prompts ARGS="--seed 2026 -
 run:  ## drive the prompt set through an endpoint: make run ARGS="--seed 2026 --limit 20"
 	@$(VENV)/bin/meetlat run $(ARGS)
 
+.PHONY: sample
+sample:  ## draw a labelling worklist from a run: make sample ARGS="runs/responses.jsonl --criterion register_fit"
+	@$(PY) scripts/sample_gold.py $(ARGS)
+
+.PHONY: label
+label:  ## label a worklist by hand, or --reconcile two passes (a person's job, ADR-0004)
+	@$(PY) scripts/label_gold.py $(ARGS)
+
 .PHONY: contexts
 contexts:  ## collect the documents that document tasks hand to the model (ADR-0005)
 	@$(PY) scripts/collect_contexts.py --all
