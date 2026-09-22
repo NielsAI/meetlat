@@ -14,9 +14,9 @@ The cost is that a distribution check reports no findings, so this cannot point 
 the words it counted (ADR-0002 reserves spans for verdicts). `src/meetlat/resources/
 anglicisms.txt` is the whole vocabulary, so a reader who wants the words has them.
 
-**What normal looks like**: 0.00 per 1000 over the 196-paragraph clean corpus (5,544
+**What normal looks like**: 0.00 per 1000 over the 190-paragraph clean corpus (5392
 words, zero hits), across all four registers. It held at zero as the corpus grew from 28
-hand-written paragraphs to 196 collected ones, which is the evidence that the two filters
+hand-written paragraphs to 190 mostly collected ones, which is the evidence that the two filters
 on the wordlist are strict enough: naturalised loanwords and Dutch homographs would both
 have fired by now. That is the number a checkpoint's score
 is read against, and it says the wordlist is conservative enough to be silent on

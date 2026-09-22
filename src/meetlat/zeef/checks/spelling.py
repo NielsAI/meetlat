@@ -20,8 +20,8 @@ at 5, *taalmodelbeoordeling* stops decomposing on `taal`. Genuine misspellings
 (`onstaan` for `ontstaan`, `teh` for `the`) do not decompose under these rules and
 are counted, which is what the metric is for.
 
-**What normal looks like**: 15.11 per 1000 over the 196-paragraph clean corpus (5,295
-words, 80 out-of-vocabulary tokens, 38 distinct). `words` counts only tokens carrying a
+**What normal looks like**: 13.4 per 1000 over the 190-paragraph clean corpus
+(5150 words, 69 out-of-vocabulary tokens, 32 distinct). `words` counts only tokens carrying a
 letter, because a word list cannot adjudicate a numeral and whether it holds one is an
 accident: `010` is in it and `24` is not.
 
