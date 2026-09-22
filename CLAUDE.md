@@ -10,7 +10,9 @@ imported below so the two never drift.
 - **Subagents** (`.claude/agents/`): delegate rather than doing these by hand.
   `calibration-reviewer` (review anything that would publish a number: judge cards, prompts, hand
   labels, the agreement maths), `check-author` (add a layer 1 check with its fixture and clean
-  corpus entries), `adr-author` (write an ADR with valid frontmatter and refresh the index). Their
+  corpus entries), `adr-author` (write an ADR with valid frontmatter and refresh the index),
+  `licence-auditor` (check that what this repository redistributes it may redistribute, and that
+  what it claims in prose is what the code and the labels hold). Their
   `model:` routing and the reason for each is `.claude/agents/rules/model-routing.md`; changing a
   row changes that table first.
 - **Skills** (`.claude/skills/`): `/calibrate-judge` is the ADR-0004 protocol as a sequence you

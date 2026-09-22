@@ -25,7 +25,7 @@ they are this project's own vocabulary; everything else in the code is English (
 
 | Layer | Package | What it is | Cost per item | State |
 | --- | --- | --- | --- | --- |
-| 1 | `meetlat.zeef` | Deterministic checks, no model call | zero | **built**, 5 checks |
+| 1 | `meetlat.zeef` | Deterministic checks, no model call | zero | **built**, 6 checks |
 | 2 | `meetlat.keuring` | Calibrated binary judges, one criterion each | one model call per criterion | card + gate built, runner not |
 | 3 | `meetlat.ijk` | Hand labels that certify a layer-2 judge | human minutes | maths + gate built, no sets yet |
 
@@ -98,7 +98,7 @@ make zeef ARGS=response.txt   # run layer 1 over a file
 make checks                   # what is registered, and what is designed but unbuilt
 
 make check          # every offline gate (check-zeef, check-judges)
-make corpus-sources # the declared CC0 sources the corpus may be collected from
+make corpus-sources # the declared sources the corpus may be collected from
 make preflight      # everything CI runs: lint, format, types, tests, gates
 make adr-index      # regenerate docs/adr/README.md after adding an ADR
 
