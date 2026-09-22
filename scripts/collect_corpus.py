@@ -74,11 +74,17 @@ class Source:
 
     name: str
     licence: str
-    #: Who to credit. One publisher writes everything a fixed list of URLs points at,
-    #: which is exactly why these are a fixed list and not a search.
+    #: Who to credit. One publisher writes everything under a fixed list or a feed,
+    #: which is exactly why these are not a search.
     author: str
     note: str
-    urls: tuple[str, ...]
+    urls: tuple[str, ...] = ()
+    #: A page listing what this publisher has out now, for one whose pages are dated.
+    #: A hardcoded list of news URLs is a list that rots, and this project already spent
+    #: a fix on five URLs that had been through two site reorganisations.
+    feed: str = ""
+    #: Which links on that page are articles rather than navigation.
+    article: str = ""
 
 
 @dataclass(frozen=True)
@@ -142,19 +148,14 @@ SOURCES: tuple[Source, ...] = (
         author="Centraal Bureau voor de Statistiek",
         note=(
             "Statistics Netherlands. CC BY 4.0 per cbs.nl/nl-nl/over-ons/website/copyright, "
-            "and CBS is both the publisher and the author it must be credited as. Economic prose "
-            "addressed to nobody, which is the business register: the one the informal sources "
-            "cannot reach and government `u` pages are not written in."
+            "and CBS is both the publisher and the author it must be credited as. Economic "
+            "prose addressed to nobody, which is the business register: the one the informal "
+            "sources cannot reach and government `u` pages are not written in. Read from the "
+            "news feed rather than a list, because its article URLs carry the date they were "
+            "published on and a list of those goes stale by definition."
         ),
-        urls=(
-            "https://www.cbs.nl/nl-nl/nieuws/2026/36/detailhandel-zet-bijna-3-procent-meer-om-in-juli",
-            "https://www.cbs.nl/nl-nl/nieuws/2026/09/omzet-detailhandel-3-5-procent-hoger-in-vierde-kwartaal",
-            "https://www.cbs.nl/nl-nl/nieuws/2026/18/minder-vacatures-in-eerste-kwartaal-van-2026",
-            "https://www.cbs.nl/nl-nl/nieuws/2026/31/economie-groeit-met-0-4-procent-in-tweede-kwartaal-2026",
-            "https://www.cbs.nl/nl-nl/nieuws/2026/05/economie-groeit-in-vierde-kwartaal-2025-met-0-5-procent",
-            "https://www.cbs.nl/nl-nl/nieuws/2026/18/minder-vacatures-in-eerste-kwartaal-van-2026",
-            "https://www.cbs.nl/nl-nl/nieuws/2026/27/economie-groeit-met-0-2-procent-in-eerste-kwartaal-2026",
-        ),
+        feed="https://www.cbs.nl/nl-nl/rss-feeds/alle-nieuwsberichten",
+        article=r"https://www\.cbs\.nl/nl-nl/nieuws/\d{4}/\d+/[a-z0-9-]+",
     ),
     Source(
         name="belastingdienst",
@@ -384,13 +385,29 @@ def wanted(text: str, seen: set[str], contains: re.Pattern[str] | None) -> bool:
     return contains is None or bool(contains.search(text))
 
 
+def pages_of(source: Source) -> list[str]:
+    """What to read: the declared URLs, plus whatever the feed lists today.
+
+    A publisher whose pages are dated cannot be followed with a fixed list; this
+    project already spent one fix on five URLs that had been through two site
+    reorganisations, and news URLs rot faster than topic pages do.
+    """
+    found = list(source.urls)
+    if source.feed:
+        try:
+            found += re.findall(source.article, fetch(source.feed).text)
+        except Exception as exc:
+            console.warn(f"{source.feed}: {exc}")
+    return list(dict.fromkeys(found))
+
+
 def collect(
     source: Source, limit: int, contains: re.Pattern[str] | None = None
 ) -> list[dict[str, object]]:
     seen = existing_texts()
     today = date.today().isoformat()
     candidates: list[dict[str, object]] = []
-    for url in source.urls:
+    for url in pages_of(source):
         if len(candidates) >= limit:
             break
         try:
