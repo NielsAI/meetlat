@@ -74,8 +74,8 @@ CE: Final = Palette.for_stream(sys.stderr)
 INDENT: Final = "  "
 
 
-def say(text: str = "") -> None:
-    print(text)
+def say(text: str = "", *, stderr: bool = False) -> None:
+    print(text, file=sys.stderr if stderr else sys.stdout)
 
 
 def heading(text: str, *, stderr: bool = False) -> None:
@@ -96,13 +96,14 @@ def warn(text: str) -> None:
     print(f"{INDENT}{C.yellow}▲{C.reset} {text}")
 
 
-def note(text: str) -> None:
-    print(f"{INDENT}{C.dim}{text}{C.reset}")
+def note(text: str, *, stderr: bool = False) -> None:
+    palette, stream = (CE, sys.stderr) if stderr else (C, sys.stdout)
+    print(f"{INDENT}{palette.dim}{text}{palette.reset}", file=stream)
 
 
-def line(text: str, *, indent: int = 8) -> None:
+def line(text: str, *, indent: int = 8, stderr: bool = False) -> None:
     """A continuation line under a status line. Compose colour from `C`, never inline."""
-    print(" " * indent + text)
+    print(" " * indent + text, file=sys.stderr if stderr else sys.stdout)
 
 
 def stat(text: str) -> None:
