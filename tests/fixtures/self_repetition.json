@@ -1,0 +1,14 @@
+{
+  "check": "self_repetition",
+  "kind": "verdict",
+  "fires": [
+    {
+      "text": "De gemeente heeft besloten de brug in september af te sluiten voor al het verkeer. De gemeente heeft besloten de brug in september af te sluiten voor al het verkeer.",
+      "spans": ["De gemeente heeft besloten de brug in september"]
+    }
+  ],
+  "silent": [
+    "De aanvraag is ontvangen. De aanvraag wordt binnen vijf werkdagen beoordeeld door een medewerker van de afdeling.",
+    "Het bestuur vergadert elke eerste dinsdag van de maand in het buurthuis aan de Kerkstraat, en de notulen verschijnen een week later op de website."
+  ]
+}

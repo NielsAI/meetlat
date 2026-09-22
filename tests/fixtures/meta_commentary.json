@@ -1,0 +1,18 @@
+{
+  "check": "meta_commentary",
+  "kind": "verdict",
+  "fires": [
+    {
+      "text": "Als AI-model kan ik geen juridisch advies geven over deze zaak.",
+      "spans": ["Als AI-model"]
+    },
+    {
+      "text": "Ik heb geen toegang tot internet, dus ik kan die pagina niet openen.",
+      "spans": ["Ik heb geen toegang tot internet"]
+    }
+  ],
+  "silent": [
+    "Voor juridisch advies kun je het beste een advocaat raadplegen.",
+    "De pagina is niet bereikbaar omdat de server offline staat."
+  ]
+}

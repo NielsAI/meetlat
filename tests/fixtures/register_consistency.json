@@ -1,0 +1,20 @@
+{
+  "check": "register_consistency",
+  "kind": "verdict",
+  "fires": [
+    {
+      "text": "Beste klant, u kunt uw bestelling annuleren. Laat maar weten of jij dat wilt.",
+      "spans": ["u", "uw", "jij"]
+    },
+    {
+      "text": "Jouw gegevens zijn verwerkt. Wij nemen zo snel mogelijk contact met u op.",
+      "spans": ["Jouw", "u"]
+    }
+  ],
+  "silent": [
+    "U kunt uw wachtwoord opnieuw instellen via de link in deze e-mail.",
+    "Je kunt je wachtwoord opnieuw instellen via de link in deze e-mail.",
+    "U kunt hier parkeren, al moet je wel eerst een kaartje kopen.",
+    "De u-bocht in de weg is slecht verlicht en daarom afgesloten voor jullie."
+  ]
+}

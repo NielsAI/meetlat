@@ -1,0 +1,20 @@
+{
+  "check": "sentence_length",
+  "kind": "distribution",
+  "metrics": [
+    {
+      "text": "Dit is een korte zin. En dit is er nog een, iets langer dan de eerste.",
+      "expect": {
+        "sentences": 2,
+        "words": 16,
+        "max": 11
+      }
+    },
+    {
+      "text": "",
+      "expect": {
+        "sentences": 0
+      }
+    }
+  ]
+}

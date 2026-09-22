@@ -1,0 +1,19 @@
+{
+  "check": "translationese",
+  "kind": "verdict",
+  "fires": [
+    {
+      "text": "Laten we erin duiken en de cijfers van vorig kwartaal bekijken.",
+      "spans": ["Laten we erin duiken"]
+    },
+    {
+      "text": "Ik hoop dat dit helpt! Voel je vrij om te reageren als er iets onduidelijk is.",
+      "spans": ["Ik hoop dat dit helpt", "Voel je vrij om"]
+    }
+  ],
+  "silent": [
+    "We bekijken eerst de cijfers van vorig kwartaal en daarna de conclusie.",
+    "Neem gerust contact op als er iets onduidelijk is.",
+    "De duikers gingen kopje onder bij een diepe duikplaats voor de kust."
+  ]
+}
