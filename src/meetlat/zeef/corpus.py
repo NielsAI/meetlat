@@ -38,6 +38,11 @@ class Meaning:
     The example does the work the definition cannot. `business` and `plain_language`
     are both unaddressed prose and the boundary between them is not obvious from two
     words, but nobody mistakes a board's decision for a train's departure time.
+
+    Where those two are hard to separate, the question is who the text assumes as its
+    reader rather than how it is phrased. A passive institutional voice reads as
+    business and often is not: "het nieuwe paspoort wordt vandaag in gebruik genomen"
+    is written for anybody who owns a passport, in words anybody owns.
     """
 
     means: str
@@ -57,11 +62,11 @@ REGISTER_MEANS: dict[str, Meaning] = {
         "U kunt bezwaar maken tegen dit besluit binnen zes weken na de verzenddatum.",
     ),
     "business": Meaning(
-        "professional or organisational prose, addressing nobody",
+        "assumes a working context and uses its vocabulary; addresses nobody",
         "Het bestuur heeft besloten de contributie dit jaar niet te verhogen.",
     ),
     "plain_language": Meaning(
-        "an ordinary fact for a general reader, addressing nobody, no professional setting",
+        "an ordinary fact in everyday words, for any reader; addresses nobody",
         "De trein naar Utrecht vertrekt van spoor 5 en heeft ongeveer vijf minuten vertraging.",
     ),
 }

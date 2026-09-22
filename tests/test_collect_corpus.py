@@ -129,3 +129,17 @@ def test_every_searched_source_names_a_licence_the_corpus_accepts() -> None:
     declared += [source.licence for source in collect_corpus.SOURCES]
     assert declared
     assert all(licence in corpus.REDISTRIBUTABLE for licence in declared)
+
+
+def test_a_truncated_teaser_is_not_a_paragraph() -> None:
+    """News index pages are full of these: the right length, prose-shaped, half a sentence."""
+    teaser = (
+        "<p>Vandaag worden het nieuwe paspoort en de nieuwe identiteitskaart in gebruik "
+        "genomen. Deze modellen bevatten een aantal nieuwe ...</p>"
+    )
+    whole = (
+        "<p>Vandaag worden het nieuwe paspoort en de nieuwe identiteitskaart in gebruik "
+        "genomen. Deze modellen bevatten een aantal nieuwe echtheidskenmerken.</p>"
+    )
+    assert collect_corpus.paragraphs_from(teaser) == []
+    assert len(collect_corpus.paragraphs_from(whole)) == 1
