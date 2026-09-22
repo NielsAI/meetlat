@@ -1,0 +1,38 @@
+# Licence for the data in this repository
+
+The **data** in this repository is licensed under a
+[Creative Commons Attribution 4.0 International Licence][cc-by] (CC BY 4.0).
+
+This covers:
+
+- the hand-labelled sets in `gold/`
+- the prompt taxonomy and any prompts generated from it
+- the word and phrase lists authored for this project in `src/meetlat/resources/`
+- the Dutch reference corpus in `tests/corpora/`
+
+The **code** is licensed separately under the Apache License 2.0; see `LICENSE`.
+Vendored third-party lists arrive under their own licences and are recorded in
+`NOTICE`; this file does not relicense them.
+
+## What that means
+
+You may share and adapt this data for any purpose, including commercially, as long as
+you give appropriate credit, link to the licence, and indicate whether you made
+changes.
+
+Suggested attribution:
+
+> Dutch evaluation data from meetlat by Niels van Beuningen, licensed under CC BY 4.0.
+> https://github.com/NielsAI/meetlat
+
+The full legal code is at <https://creativecommons.org/licenses/by/4.0/legalcode>.
+
+## Why the split
+
+The repository is two different kinds of thing and one licence fits neither well.
+Software licences are written about source code, object code, derivative works and
+patents, and none of those concepts land cleanly on a file of 200 sentences a person
+labelled by hand. CC BY is written for exactly that, and it keeps attribution attached
+to the part of this project that cost human hours rather than compute.
+
+[cc-by]: https://creativecommons.org/licenses/by/4.0/

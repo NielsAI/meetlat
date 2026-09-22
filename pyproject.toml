@@ -1,0 +1,70 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "meetlat"
+version = "0.1.0"
+description = "A calibrated harness for scoring free-form Dutch text generation."
+readme = "README.md"
+# Code is Apache-2.0; the data in gold/, tests/corpora/ and the authored wordlists is
+# CC BY 4.0 (LICENSE-DATA), and vendored lists keep their own licence (NOTICE).
+license = "Apache-2.0"
+license-files = ["LICENSE", "LICENSE-DATA", "NOTICE"]
+requires-python = ">=3.11"
+authors = [{ name = "Niels van Beuningen" }]
+keywords = ["evaluation", "dutch", "nederlands", "llm", "benchmark", "calibration"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Natural Language :: Dutch",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Text Processing :: Linguistic",
+]
+# Everything on disk that a person or an agent can edit by hand, keurmeester cards,
+# ijksets, check fixtures, is a pydantic model, so a malformed artifact fails at the
+# boundary with a field path instead of somewhere downstream as a KeyError. Nothing
+# here reaches the network; the endpoint client lives in the `runner` extra.
+dependencies = ["pydantic>=2.9"]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "ruff>=0.14",
+  "mypy>=1.14",
+]
+
+[project.scripts]
+meetlat = "meetlat.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/NielsAI/meetlat"
+Issues = "https://github.com/NielsAI/meetlat/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/meetlat"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = [".venv", "__pycache__"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "B", "I"]
+
+[tool.mypy]
+python_version = "3.11"
+plugins = ["pydantic.mypy"]
+explicit_package_bases = true
+mypy_path = "src:scripts"
+check_untyped_defs = true
+# The whole package is gated from day one. It is small, has no dependencies, and the
+# check contract below leans on the types being real; there is nothing to ratchet.
+files = ["src", "scripts", "tests"]
+strict_equality = true
+warn_unused_ignores = true
