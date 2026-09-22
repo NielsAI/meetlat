@@ -180,3 +180,16 @@ def test_a_register_past_its_floor_says_so_where_it_changes_what_you_do() -> Non
 
     todo = review_corpus._progress(6, "informal_je")
     assert "19 more for informal_je" in todo
+
+
+def test_a_menu_can_be_left_without_changing_the_tag(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Opening the menu must never be able to cost you the tag you already had."""
+    monkeypatch.setattr(review_corpus, "_read_key", lambda: "b")
+    kept = review_corpus.pick("register", list(review_corpus.REGISTERS), "business")
+    assert kept == "business"
+
+
+def test_backing_out_of_a_reason_chooses_no_reason(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The reject menu has no current value, so `b` leaves the candidate undecided."""
+    monkeypatch.setattr(review_corpus, "_read_key", lambda: "b")
+    assert review_corpus.pick("why", ["not natural Dutch", "wrong register"], "") == ""

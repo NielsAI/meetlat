@@ -276,7 +276,13 @@ def pick(
             console.line(f"{C.dim}{meaning.means}{C.reset}", indent=11)
             console.line(f'{C.dim}e.g. "{meaning.like}"{C.reset}', indent=11)
     keys = {str(i): options[i - 1] for i in range(1, len(options) + 1)}
-    return keys[key(dict(keys))]
+    # Opening this menu should never be able to cost you the tag you already had, so
+    # there is a way out that changes nothing. Without it the only exits are picking
+    # something and quitting, and a menu you cannot leave is a menu that gets answered
+    # wrongly rather than left.
+    legend = {**keys, "b": f"back, keep {current}" if current else "back, change nothing"}
+    pressed = key(legend)
+    return current if pressed == "b" else keys[pressed]
 
 
 def vocabulary() -> None:
@@ -460,17 +466,23 @@ def main(argv: list[str] | None = None) -> int:
                 if choice == "r"
                 else ("domain", DOMAINS, corpus.DOMAIN_MEANS)
             )
+            before = str(candidate[field])
             try:
-                candidate[field] = pick(field, options, str(candidate[field]), meanings)
+                candidate[field] = pick(field, options, before, meanings)
             except Stopped:
-                console.warn(f"{field} left as {candidate[field]}")
+                pass
+            if candidate[field] == before:
+                console.note(f"{field} unchanged: {before}")
             continue
         if choice == "n":
             reasons = ["not natural Dutch", "wrong register", "not interesting", "a duplicate idea"]
             try:
-                _reject(candidate, pick("why", reasons, ""), rejects)
+                why = pick("why", reasons, "")
             except Stopped:
                 break
+            if not why:  # backed out of the menu: the candidate is still undecided
+                continue
+            _reject(candidate, why, rejects)
             rejected += 1
             index += 1
             continue
