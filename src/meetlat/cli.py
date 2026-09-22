@@ -158,6 +158,75 @@ def _generate_prompts(seed: int, per_cell: int, as_json: bool) -> int:
     return 0
 
 
+def _run(seed: int, per_cell: int, out: Path, temperature: float, limit: int) -> int:
+    """Drive the prompt set through an endpoint and keep what came back (build step 5).
+
+    Reports layer 1 per interaction type and no quality figure of any kind. Layer 2 is a
+    model call per criterion and nothing here is calibrated, so a pass rate printed by
+    this command would be the exact claim ADR-0001 says the repository may not make.
+    """
+    from meetlat.runner import Endpoint, run_prompts
+    from meetlat.runner.client import EndpointError
+    from meetlat.runner.run import metadata
+    from meetlat.taxonomy.generate import generate, load_contexts
+
+    pool = Path("prompts/contexts.jsonl")
+    contexts = load_contexts(pool) if pool.exists() else []
+    prompts, empty = generate(seed=seed, per_cell=per_cell, contexts=contexts)
+    if limit:
+        prompts = prompts[:limit]
+
+    try:
+        endpoint = Endpoint.from_environment(temperature)
+    except EndpointError as exc:
+        console.fail(str(exc))
+
+    console.banner("meetlat · run", endpoint.describe())
+    console.note(f"seed {seed}, {per_cell} per cell, {len(prompts)} prompts")
+    if empty:
+        console.warn(f"{len(empty)} cells generated nothing; `make check-taxonomy` says which")
+    console.note("layer 1 only: nothing here is calibrated, so this reports findings, not quality")
+    console.say()
+
+    responses = []
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with out.open("w", encoding="utf-8") as handle:
+        handle.write(f"// {metadata(endpoint, seed, per_cell).model_dump_json()}\n")
+        with console.Spinner(f"{len(prompts)} prompts") as spinner:
+            for response in run_prompts(prompts, contexts, endpoint):
+                handle.write(response.model_dump_json() + "\n")
+                handle.flush()
+                responses.append(response)
+        del spinner
+
+    failed = [r for r in responses if r.error]
+    if failed:
+        console.warn(f"{len(failed)} of {len(responses)} prompts failed at the endpoint")
+        console.note(f"first: {failed[0].error}")
+
+    answered = [r for r in responses if r.response]
+    console.ok(f"{len(answered)} response(s) written to {out}")
+
+    # Per interaction type, because a rate over mixed traffic hides that rewriting works
+    # and summarising does not (ADR-0003).
+    by_task: dict[str, list[int]] = {}
+    for response in answered:
+        report = zeef.run(response.response)
+        by_task.setdefault(response.task, []).append(len(report.findings))
+    console.say()
+    console.line(f"{C.dim}layer 1 findings per interaction type{C.reset}", indent=4)
+    console.table(
+        [
+            (task, f"{sum(counts)} findings", f"over {len(counts)} responses")
+            for task, counts in sorted(by_task.items())
+        ],
+        indent="    ",
+    )
+    console.say()
+    console.note("no pass rate: that needs a judge through the gate (ADR-0004)")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="meetlat",
@@ -184,11 +253,20 @@ def main(argv: list[str] | None = None) -> int:
     run_prompts.add_argument("--per-cell", type=int, default=1, metavar="N")
     run_prompts.add_argument("--json", action="store_true", help="write the set as JSONL")
 
+    run_set = sub.add_parser("run", help="drive the prompt set through an endpoint")
+    run_set.add_argument("--seed", type=int, required=True, help="which prompt set to run")
+    run_set.add_argument("--per-cell", type=int, default=1, metavar="N")
+    run_set.add_argument("--out", type=Path, default=Path("runs/responses.jsonl"))
+    run_set.add_argument("--temperature", type=float, default=0.0)
+    run_set.add_argument("--limit", type=int, default=0, help="stop after N prompts, for a trial")
+
     args = parser.parse_args(argv)
     if args.command == "checks":
         return _list_checks()
     if args.command == "prompts":
         return _generate_prompts(args.seed, args.per_cell, args.json)
+    if args.command == "run":
+        return _run(args.seed, args.per_cell, args.out, args.temperature, args.limit)
 
     text = args.path.read_text(encoding="utf-8") if args.path else sys.stdin.read()
     try:

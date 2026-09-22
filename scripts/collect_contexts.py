@@ -84,6 +84,18 @@ _DOMAIN_BY_PATH: tuple[tuple[str, str], ...] = (
 )
 
 
+#: Which indexed sources to walk, with the subject to ask for and the domain the
+#: material is filed under. An index needs a keyword or it returns whatever is newest,
+#: and `education` is reachable no other way: every fixed-url Dutch source is a
+#: government site, and government sites write about schools rather than teaching.
+_SEARCH_PLAN: tuple[tuple[str, str, str], ...] = (
+    ("edurep", "burgerschap", "education"),
+    ("edurep", "rekenen", "education"),
+    ("edurep", "taalverzorging", "education"),
+    ("edurep", "loopbaan", "education"),
+)
+
+
 def domain_of(url: str) -> str:
     """The domain this page's text is filed under, or empty if no rule matches."""
     return next((domain for fragment, domain in _DOMAIN_BY_PATH if fragment in url), "")
@@ -148,8 +160,13 @@ def main(argv: list[str] | None = None) -> int:
             if fresh:
                 console.ok(f"{len(fresh)} document(s) from {fetched.url}")
 
+    if args.all:
+        made.extend(_from_index(len(made) + 1))
+
     # Validated here rather than at read time, so a malformed document is caught while
-    # the run that produced it is still on screen.
+    # the run that produced it is still on screen. After every source has contributed,
+    # not before: the first version validated the fixed-url documents and then appended
+    # the indexed ones, which wrote 37 documents nowhere.
     documents = [ContextDocument.model_validate(d) for d in made]
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -158,6 +175,46 @@ def main(argv: list[str] | None = None) -> int:
     console.ok(f"{len(documents)} context document(s) written to {args.out.name}")
     console.note("none of them is in the clean corpus; that disjointness is the point")
     return 0
+
+
+def _from_index(start: int) -> list[dict[str, str]]:
+    """Documents from the indexed sources, grouped per page like the fixed-url ones.
+
+    `collect_indexed` already refuses a page whose declared licence disagrees with the
+    index and one the index cannot name an author for, and it already skips anything in
+    the clean corpus, so this reuses it whole rather than restating those rules.
+    """
+    made: list[dict[str, str]] = []
+    for name, keyword, domain in _SEARCH_PLAN:
+        source = next((s for s in cc.SEARCH_SOURCES if s.name == name), None)
+        if source is None:
+            console.warn(f"no indexed source named {name!r}")
+            continue
+        candidates = cc.collect_indexed(source, limit=60, keyword=keyword)
+        by_url: dict[str, list[str]] = {}
+        authors: dict[str, str] = {}
+        for candidate in candidates:
+            url = str(candidate["url"])
+            by_url.setdefault(url, []).append(str(candidate["text"]))
+            authors[url] = str(candidate["author"])
+        for url, paragraphs in by_url.items():
+            for offset in range(
+                0, len(paragraphs) - PARAGRAPHS_PER_DOCUMENT + 1, PARAGRAPHS_PER_DOCUMENT
+            ):
+                made.append(
+                    {
+                        "id": f"ctx-{start + len(made):04d}",
+                        "text": "\n\n".join(paragraphs[offset : offset + PARAGRAPHS_PER_DOCUMENT]),
+                        "domain": domain,
+                        "language": "nl",
+                        "source": source.host,
+                        "licence": source.licence,
+                        "author": authors[url],
+                        "url": url,
+                    }
+                )
+        console.ok(f"{len(made)} document(s) after {name}/{keyword}")
+    return made
 
 
 def _corpus_path() -> Path:

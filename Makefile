@@ -47,6 +47,10 @@ zeef:  ## run the deterministic checks over a file: make zeef ARGS=response.txt
 prompts:  ## generate an evaluation prompt set: make prompts ARGS="--seed 2026 --per-cell 3"
 	@$(VENV)/bin/meetlat prompts $(ARGS)
 
+.PHONY: run
+run:  ## drive the prompt set through an endpoint: make run ARGS="--seed 2026 --limit 20"
+	@$(VENV)/bin/meetlat run $(ARGS)
+
 .PHONY: contexts
 contexts:  ## collect the documents that document tasks hand to the model (ADR-0005)
 	@$(PY) scripts/collect_contexts.py --all

@@ -352,6 +352,18 @@ SOURCES: tuple[Source, ...] = (
             "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/innovatie/",
             "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/online-kinderrechten/",
             "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/open-overheid/",
+            # Articles rather than topic pages. A topic page is mostly a listing, and
+            # since its teasers stopped being collected it yields about two paragraphs;
+            # these are prose, and their urls are permanent where a listing rotates.
+            "https://www.digitaleoverheid.nl/achtergrondartikelen/ai-is-veel-meer-dan-een-it-vraagstuk/",
+            "https://www.digitaleoverheid.nl/achtergrondartikelen/de-cyberbeveiligingswet-verplicht-veilig/",
+            "https://www.digitaleoverheid.nl/achtergrondartikelen/hoe-statia-werkt-aan-een-digitaal-weerbare-gemeenschap/",
+            "https://www.digitaleoverheid.nl/achtergrondartikelen/met-de-burger-centraal-kijk-je-anders-naar-dienstverlening/",
+            "https://www.digitaleoverheid.nl/achtergrondartikelen/om-de-tafel-voor-veilige-digitale-dienstverlening/",
+            "https://www.digitaleoverheid.nl/achtergrondartikelen/samen-werken-aan-digitale-slagkracht/",
+            "https://www.digitaleoverheid.nl/achtergrondartikelen/van-dreiging-tot-bestuurstafel-zo-pakt-uwv-het-aan/",
+            "https://www.digitaleoverheid.nl/achtergrondartikelen/wat-je-moet-weten-over-ai-geletterdheid/",
+            "https://www.digitaleoverheid.nl/achtergrondartikelen/wat-levert-een-rijks-i-trainee-jouw-organisatie-op/",
         ),
     ),
     Source(
