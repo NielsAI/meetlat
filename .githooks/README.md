@@ -44,5 +44,5 @@ it often, the hook is wrong and should be changed rather than routed around.
 
 ```bash
 make check-commit-msg     # 10 recorded cases
-python3 scripts/git_hook.py pre-commit
+python3 scripts/run_checks.py pre-commit
 ```

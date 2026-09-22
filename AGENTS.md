@@ -106,7 +106,7 @@ make adr-index      # regenerate docs/adr/README.md after adding an ADR
 make test ARGS="-k agreement"   # filter
 ```
 
-`make preflight` green means CI green: the workflow calls the same targets.
+`make preflight` green means CI green: the workflow runs the same commands, spelled out rather than through make, so a failed job names the tool that failed.
 
 ## Build order
 

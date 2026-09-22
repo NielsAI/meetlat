@@ -5,9 +5,11 @@ on:
     branches: [main]
   pull_request:
 
-# Every job here calls a `make` target that a person can run locally, so `make preflight`
-# green means this workflow green. A check that exists only in this file is a check nobody
-# can run before pushing (ADR-0006).
+# Every job here runs the same command a `make` target runs, so `make preflight` green
+# means this workflow green. The commands are spelled out rather than invoked through
+# make so a job failure names the tool that failed; keeping the two in step is therefore
+# a thing to check, and `make preflight` is the list to check against. A check that
+# exists only in this file is a check nobody can run before pushing (ADR-0006).
 
 jobs:
   # 3.11 is the supported floor and 3.14 is what the author runs. Anything between is

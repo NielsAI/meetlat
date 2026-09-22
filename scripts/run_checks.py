@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Run a hook's `make` targets, quietly on success and loudly on failure.
+"""Run a named plan of `make` targets, quietly on success and loudly on failure.
 
-The presentation lives here rather than in three shell scripts, so the hooks speak the
-same voice as everything else (`meetlat.console`) instead of each re-deriving its own
-escape codes.
+Three callers share it: the `pre-commit` and `pre-push` hooks, and `make preflight`.
+The presentation lives here rather than in each of them, so every way of running the
+battery speaks the same voice (`meetlat.console`) instead of re-deriving its own escape
+codes, and a passing run is a few lines rather than four tools\' worth of chatter.
 
 One deliberate simplification against the version this is adapted from, and one
 deliberate omission.
@@ -49,6 +50,10 @@ class Step:
     #: An executable that must be on PATH, or the step is skipped rather than failed.
     #: Only for tools outside the Python dev dependencies, which `make install` covers.
     requires: str = ""
+    #: Print this step's output even when it passes. For the steps that report a
+    #: measurement rather than a verdict: the corpus coverage is the thing worth seeing
+    #: on a green run, and hiding it is how nobody notices a register stuck at six.
+    speak: bool = False
 
     def unavailable(self) -> str:
         if self.requires and shutil.which(self.requires) is None:
@@ -69,6 +74,16 @@ PLANS: dict[str, tuple[Step, ...]] = {
     "pre-push": (
         Step("preflight", "lint, types, tests, gates"),
         Step("secrets", "gitleaks, full history", requires="gitleaks"),
+    ),
+    # Everything CI runs. Not a hook, but the same battery and the same reporting, so
+    # `make preflight` and a blocked push tell you the same thing the same way.
+    "preflight": (
+        Step("lint", "ruff"),
+        Step("format-check", "ruff format"),
+        Step("typecheck", "mypy"),
+        Step("test", "pytest"),
+        Step("check", "zeef, judges, guards", speak=True),
+        Step("check-adrs", "the ADR index matches the ADRs"),
     ),
 }
 
@@ -91,7 +106,13 @@ class Columns:
 def _run(step: Step, index: int, total: int, columns: Columns) -> subprocess.CompletedProcess[str]:
     with console.Spinner(f"make {step.target}") as spinner:
         result = subprocess.run(
-            ["make", step.target], cwd=REPO_ROOT, capture_output=True, text=True, check=False
+            # --no-print-directory: a nested make announces every entry and exit, which
+            # is four lines of noise around one line of result.
+            ["make", "--no-print-directory", step.target],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         elapsed = console.duration(spinner.elapsed)
 
@@ -105,18 +126,18 @@ def _run(step: Step, index: int, total: int, columns: Columns) -> subprocess.Com
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("hook", choices=sorted(PLANS))
+    parser.add_argument("plan", choices=sorted(PLANS))
     args = parser.parse_args(argv)
 
     if not (REPO_ROOT / ".venv" / "bin" / "python").exists():
-        console.warn(f"{args.hook}: no .venv, skipping. Run `make install` to enable the checks.")
+        console.warn(f"{args.plan}: no .venv, skipping. Run `make install` to enable the checks.")
         return 0
 
-    planned = PLANS[args.hook]
+    planned = PLANS[args.plan]
     runnable = [step for step in planned if not step.unavailable()]
     columns = Columns.measure(planned)
 
-    console.banner(args.hook, f"{len(runnable)} check(s) to run")
+    console.banner(f"meetlat · {args.plan}", f"{len(runnable)} check(s) to run")
     console.rule()
     for step in planned:
         if reason := step.unavailable():
@@ -126,6 +147,8 @@ def main(argv: list[str] | None = None) -> int:
     for index, step in enumerate(runnable, start=1):
         result = _run(step, index, len(runnable), columns)
         if result.returncode == 0:
+            if step.speak and (spoken := result.stdout.rstrip()):
+                print(spoken)
             continue
 
         console.box((result.stdout + result.stderr).rstrip(), title=f"make {step.target}")
@@ -134,8 +157,9 @@ def main(argv: list[str] | None = None) -> int:
         if remaining := len(runnable) - index:
             console.note(f"{remaining} later check(s) not run")
         console.rule()
-        console.verdict(False, f"{args.hook} blocked")
-        console.note("Fix the above, or bypass with --no-verify if you know why.")
+        console.verdict(False, f"{args.plan} blocked")
+        if args.plan != "preflight":
+            console.note("Fix the above, or bypass with --no-verify if you know why.")
         return 1
 
     console.rule()
