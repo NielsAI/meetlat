@@ -64,3 +64,21 @@ def test_a_vendored_resource_is_audited_whatever_its_extension(tmp_path: Path) -
     assert [f.what for f in findings] == [
         "vendored but 'opentaal-wordlist.txt.gz' does not appear in NOTICE"
     ]
+
+
+def test_a_check_the_corpus_cannot_reach_must_be_covered_by_its_fixture() -> None:
+    """Nothing published mixes formal `u` with impersonal `je`, so the fixture carries it."""
+    findings: list[check_zeef_contract.Finding] = []
+    check_zeef_contract._audit_exercise_coverage(REPO_ROOT, [], findings)
+    # Every verdict check is uncovered by an empty corpus, so this passes only because
+    # each one's fixture holds a silent case matching what would exercise it.
+    assert findings == []
+
+
+def test_losing_that_silent_case_fails_the_gate(monkeypatch: pytest.MonkeyPatch) -> None:
+    unreachable = check_zeef_contract.Exercise("something no fixture contains", lambda text: False)
+    monkeypatch.setitem(check_zeef_contract.EXERCISED_BY, "register_consistency", unreachable)
+    findings: list[check_zeef_contract.Finding] = []
+    check_zeef_contract._audit_exercise_coverage(REPO_ROOT, [], findings)
+    assert [f.where for f in findings] == ["register_consistency"]
+    assert "nothing tests it" in findings[0].what

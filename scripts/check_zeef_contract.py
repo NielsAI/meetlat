@@ -100,15 +100,17 @@ class Exercise:
 #: nobody wrote a row for is a check whose coverage silently reads as whatever the
 #: others happen to give it.
 EXERCISED_BY: dict[str, Exercise] = {
-    # A paragraph with only one side cannot make this fire, so it says nothing about
-    # the narrowing that is the whole point of the check (ADR-0002).
-    # The check's own compiled patterns, so a marker means here exactly what it means
-    # there, trailing-hyphen exclusion included.
+    # Only one near-miss can legitimately sit in a clean corpus. A formal marker beside
+    # `jij` or `jullie` is genuinely mixed register, the check fires on it, and an entry
+    # like that would fail this very gate. What tests the narrowing is a formal marker
+    # beside bare `je`, the impersonal reading the check was narrowed to ignore. The
+    # check's own patterns are reused so a marker means the same thing in both places.
     "register_consistency": Exercise(
-        "an informal and a formal marker in one paragraph",
+        "a formal marker beside impersonal `je`, and no `jij` or `jullie`",
         lambda text: bool(
-            register_consistency._ALL_INFORMAL.search(text)
-            and register_consistency._FORMAL.search(text)
+            register_consistency._FORMAL.search(text)
+            and register_consistency._ALL_INFORMAL.search(text)
+            and not register_consistency._UNAMBIGUOUS.search(text)
         ),
     ),
     # Phrase lookups run over the whole text, so any correct Dutch is evidence that
@@ -151,6 +153,38 @@ def exercise_counts(entries: list[corpus.CorpusEntry]) -> dict[str, int]:
         name: sum(1 for entry in entries if rule.holds(entry.text))
         for name, rule in EXERCISED_BY.items()
     }
+
+
+def _audit_exercise_coverage(
+    repo_root: Path, entries: list[corpus.CorpusEntry], out: list[Finding]
+) -> None:
+    """A verdict check the corpus cannot reach has to be reached by its fixture instead.
+
+    Some near-misses do not occur in published Dutch at all. Nothing edited mixes a
+    formal `u` with impersonal `je`: 190 corpus entries and 208 collected candidates
+    contain not one, because style guides forbid it and editors remove it. So no corpus
+    of collected paragraphs will ever test that narrowing, which makes it a fact about
+    the language rather than a gap to keep warning about.
+
+    A warning nobody can clear is the thing this project says a check must never be, so
+    the case moves to the fixture, where a constructed silent sentence can do what
+    collected text cannot, and it is required there rather than hoped for.
+    """
+    for name, count in exercise_counts(entries).items():
+        if count:
+            continue
+        try:
+            silent = fixtures.load(repo_root / "tests" / "fixtures" / f"{name}.json").silent
+        except (OSError, ValueError):
+            continue  # the fixture audit above already reported this
+        if not any(EXERCISED_BY[name].holds(text) for text in silent):
+            out.append(
+                Finding(
+                    name,
+                    f"nothing tests it: no corpus paragraph has {EXERCISED_BY[name].needs}, "
+                    f"and neither does any silent case in its fixture",
+                )
+            )
 
 
 def _audit_resource_licences(repo_root: Path, out: list[Finding]) -> None:
@@ -230,6 +264,8 @@ def audit(repo_root: Path) -> list[Finding]:
         out.append(Finding("tests/corpora/clean_nl.jsonl", str(exc)))
         return out
 
+    _audit_exercise_coverage(repo_root, entries, out)
+
     for entry in entries:
         for check in zeef.CHECKS:
             if check.kind != "verdict":
@@ -272,9 +308,14 @@ def main(argv: list[str] | None = None) -> int:
         console.note(
             "corpus exercises: " + "  ".join(f"{name} {count}" for name, count in exercised.items())
         )
+        # Reaching here means the audit found a silent fixture case for every check the
+        # corpus cannot reach, so this reports where the cover is rather than warning.
         for name, count in exercised.items():
             if count == 0:
-                console.warn(f"no paragraph tests {name}: it needs {EXERCISED_BY[name].needs}")
+                console.note(
+                    f"{name}: no corpus paragraph has {EXERCISED_BY[name].needs}, "
+                    f"so its fixture carries that case instead"
+                )
         # An empty register is named, not left to be inferred from a total (ADR-0007).
         if empty := [register for register, count in counts.items() if count == 0]:
             console.warn(f"no paragraphs for: {', '.join(empty)}")
