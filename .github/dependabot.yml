@@ -1,11 +1,23 @@
 version: 2
+
+# Grouped, because this repository has one runtime dependency and four actions. Ungrouped,
+# a quiet month still produces three or four separate PRs that each need a review and a
+# merge, and the reviewing stops happening long before the PRs do.
 updates:
   - package-ecosystem: pip
     directory: /
     schedule:
       interval: monthly
+    groups:
+      python:
+        patterns: ["*"]
     open-pull-requests-limit: 3
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+    open-pull-requests-limit: 3
