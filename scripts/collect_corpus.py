@@ -16,7 +16,10 @@ There are two kinds. A `Source` is a fixed list of pages under one licence. A
 `SearchSource` is an index that finds the pages, which is the only way to reach the
 informal registers: CC0 Dutch is written by governments and governments write `u`.
 An index repeats what an uploader typed, so its answer is treated as a lead and the
-licence is read again from the page the text actually comes from.
+licence is read again from the page the text comes from. That re-read is not a second
+opinion, because on a harvested index both readings trace back to the same uploader: it
+catches a stale harvest and it refuses a page naming two licences, and no more than
+that.
 
     python3 scripts/collect_corpus.py --list
     python3 scripts/collect_corpus.py --source rijksoverheid --limit 20
@@ -44,10 +47,10 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 from meetlat import console  # noqa: E402  (needs the sys.path line above)
 from meetlat.zeef import corpus  # noqa: E402
 
-#: Paragraphs shorter than this are headings, labels and navigation crumbs; longer
-#: ones are usually two paragraphs an extractor failed to split.
-MIN_CHARS = 80
-MAX_CHARS = 400
+#: What counts as a paragraph is the corpus's definition, not the collector's, so the
+#: floor a candidate is measured against is the one the gate reports the corpus against.
+MIN_CHARS = corpus.MIN_CHARS
+MAX_CHARS = corpus.MAX_CHARS
 
 USER_AGENT = "meetlat-corpus-collector (https://github.com/NielsAI/meetlat)"
 
@@ -69,6 +72,9 @@ class Source:
 
     name: str
     licence: str
+    #: Who to credit. One publisher writes everything a fixed list of URLs points at,
+    #: which is exactly why these are a fixed list and not a search.
+    author: str
     note: str
     urls: tuple[str, ...]
 
@@ -77,10 +83,11 @@ class Source:
 class SearchSource:
     """An index that finds the pages, each of which carries its own licence.
 
-    The licence is filtered for in the query and then verified against the page, which
-    is the whole difference from `Source`: there the licence is known before the fetch
-    because a person put the URL in the list, here it is a claim made by whoever
-    uploaded the material.
+    The licence is filtered for in the query and then read again from the page, which is
+    the whole difference from `Source`: there the licence is known before the fetch
+    because a person put the URL in a list against terms a publisher states centrally,
+    here it is a self-declaration by whoever uploaded the material, on a platform whose
+    operator warrants nothing about it.
     """
 
     name: str
@@ -103,6 +110,7 @@ SOURCES: tuple[Source, ...] = (
     Source(
         name="rijksoverheid",
         licence="CC0-1.0",
+        author="Rijksoverheid",
         note=(
             "Dutch central government. CC0 1.0 per rijksoverheid.nl/copyright. Formal `u` "
             "register, administrative domain, so it cannot fill the informal registers."
@@ -115,6 +123,24 @@ SOURCES: tuple[Source, ...] = (
             "https://www.rijksoverheid.nl/onderwerpen/basisonderwijs",
         ),
     ),
+    Source(
+        name="cbs",
+        licence="CC-BY-4.0",
+        author="Centraal Bureau voor de Statistiek",
+        note=(
+            "Statistics Netherlands. CC BY 4.0 per cbs.nl/nl-nl/over-ons/website/copyright, "
+            "and CBS is both the publisher and the author it must be credited as. Economic prose "
+            "addressed to nobody, which is the business register: the one the informal sources "
+            "cannot reach and government `u` pages are not written in."
+        ),
+        urls=(
+            "https://www.cbs.nl/nl-nl/nieuws/2026/36/detailhandel-zet-bijna-3-procent-meer-om-in-juli",
+            "https://www.cbs.nl/nl-nl/nieuws/2026/09/omzet-detailhandel-3-5-procent-hoger-in-vierde-kwartaal",
+            "https://www.cbs.nl/nl-nl/nieuws/2026/18/minder-vacatures-in-eerste-kwartaal-van-2026",
+            "https://www.cbs.nl/nl-nl/nieuws/2026/31/economie-groeit-met-0-4-procent-in-tweede-kwartaal-2026",
+            "https://www.cbs.nl/nl-nl/nieuws/2026/05/economie-groeit-in-vierde-kwartaal-2025-met-0-5-procent",
+        ),
+    ),
 )
 
 SEARCH_SOURCES: tuple[SearchSource, ...] = (
@@ -123,11 +149,12 @@ SEARCH_SOURCES: tuple[SearchSource, ...] = (
         licence="CC-BY-4.0",
         note=(
             "Open Dutch learning material, indexed by Kennisnet, searchable without a key. "
-            "Written by teachers for pupils and so addressed as `je`, which is the register "
-            "no CC0 government source supplies. Material the uploader marked CC BY 4.0 only: "
-            "`cc-by-30` pages carry the Dutch port CC-BY-3.0-NL, which is a different "
-            "identifier from the one the corpus accepts, and the `cc0-10` and `publicdomain` "
-            "slices index video and third-party sites rather than pages with text on them."
+            "Written by teachers and by pupils, for pupils, and so addressed as `je`, which "
+            "is the register no CC0 government source supplies. Material the uploader marked "
+            "CC BY 4.0 only: a `cc-by-30` page links both the unported licence and the Dutch "
+            "port CC-BY-3.0-NL, so two identifiers disagree and the page is refused anyway, "
+            "and the `cc0-10` and `publicdomain` slices index video and third-party sites "
+            "rather than pages with text on them."
         ),
         endpoint="https://wszoeken.edurep.kennisnet.nl/edurep/sruns",
         cql=("lom.general.language=nl AND lom.rights.copyrightandotherrestrictions=cc-by-40"),
@@ -225,22 +252,48 @@ def page_licence(html: str) -> str | None:
 
 
 _SRW_RECORD = "{http://www.loc.gov/zing/srw/}record"
-_LOM_LOCATION = "{http://www.imsglobal.org/xsd/imsmd_v1p2}location"
+_LOM = "{http://www.imsglobal.org/xsd/imsmd_v1p2}"
+_VCARD_NAME = re.compile(r"^FN:(.+)$", re.MULTILINE)
 
 
-def index_locations(xml: str) -> list[str]:
-    """The page each search result points at, one per record.
+@dataclass(frozen=True)
+class IndexRecord:
+    """One search result: where the material is, and who has to be credited for it."""
+
+    url: str
+    authors: tuple[str, ...]
+
+
+def index_records(xml: str) -> list[IndexRecord]:
+    """What each search result points at, and who the index says wrote it.
 
     A record can carry several locations, a thumbnail and a publisher page among them;
-    the first that is a URL is the material.
+    the first that is a URL is the material. The authors are read because CC BY requires
+    retaining identification of the creator, and a paragraph credited to the index it was
+    found through is not attributed at all. Contributors in every other role are left
+    out, the publisher included: hosting a lesson is not writing one.
     """
-    found: list[str] = []
+    found: list[IndexRecord] = []
     for record in ElementTree.fromstring(xml).iter(_SRW_RECORD):
-        for location in record.iter(_LOM_LOCATION):
-            url = "".join(location.itertext()).strip()
-            if url.startswith("http"):
-                found.append(url)
-                break
+        url = next(
+            (
+                text
+                for location in record.iter(_LOM + "location")
+                if (text := "".join(location.itertext()).strip()).startswith("http")
+            ),
+            "",
+        )
+        if not url:
+            continue
+        authors: list[str] = []
+        for contribute in record.iter(_LOM + "contribute"):
+            role = contribute.find(_LOM + "role")
+            if role is None or not "".join(role.itertext()).strip().endswith("author"):
+                continue
+            for entity in contribute.iter(_LOM + "centity"):
+                if name := _VCARD_NAME.search("".join(entity.itertext())):
+                    authors.append(name.group(1).strip())
+        found.append(IndexRecord(url, tuple(authors)))
     return found
 
 
@@ -289,6 +342,7 @@ def collect(source: Source, limit: int) -> list[dict[str, object]]:
                     "domain": "TODO",
                     "origin": "collected",
                     "source": source.name,
+                    "author": source.author,
                     "licence": source.licence,
                     "url": url,
                     "retrieved": today,
@@ -308,14 +362,15 @@ def collect_indexed(source: SearchSource, limit: int, keyword: str) -> list[dict
     start = 1
     while len(candidates) < limit and read < MAX_PAGES:
         try:
-            locations = index_locations(fetch(search_url(source, keyword, start)))
+            records = index_records(fetch(search_url(source, keyword, start)))
         except Exception as exc:
             console.warn(f"{source.name}: {exc}")
             break
-        if not locations:
+        if not records:
             break
         start += INDEX_PAGE
-        for url in locations:
+        for record in records:
+            url = record.url
             if len(candidates) >= limit or read >= MAX_PAGES:
                 break
             if urllib.parse.urlsplit(url).hostname != source.host or url in visited:
@@ -331,6 +386,11 @@ def collect_indexed(source: SearchSource, limit: int, keyword: str) -> list[dict
             declared = page_licence(html)
             if declared != source.licence:
                 console.skip(url, f"page declares {declared or 'no licence'}")
+                continue
+            # CC BY is conditional on naming the creator, so a page the index cannot
+            # name an author for cannot be used, however clean its licence looks.
+            if not record.authors:
+                console.skip(url, "the index names no author, so it cannot be credited")
                 continue
             found = paragraphs_from(html, within=source.within)
             if found:
@@ -348,7 +408,8 @@ def collect_indexed(source: SearchSource, limit: int, keyword: str) -> list[dict
                         "register": "TODO",
                         "domain": "TODO",
                         "origin": "collected",
-                        "source": source.name,
+                        "source": source.host,
+                        "author": ", ".join(record.authors),
                         "licence": source.licence,
                         "url": url,
                         "retrieved": today,

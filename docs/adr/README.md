@@ -15,13 +15,14 @@ is true *now* lives in `AGENTS.md` and in the gates each ADR names below.
 | [0006](0006-enforcement-lives-in-scripts.md) | A rule worth having is a script with three callers | accepted | 2026-09-22 | `AGENTS.md`, `.claude/hooks/README.md`, `Makefile`, `.github/workflows/ci.yml` |
 | [0007](0007-the-corpus-carries-provenance-and-register.md) | The clean corpus carries provenance and a register, per paragraph | accepted | 2026-09-22 | `AGENTS.md`, `scripts/check_zeef_contract.py`, `src/meetlat/zeef/corpus.py` |
 | [0008](0008-spelling-is-a-rate-not-a-verdict.md) | Spelling is reported as a rate, and invented compounds are not detectable | accepted | 2026-09-22 | `AGENTS.md`, `scripts/check_zeef_contract.py` |
+| [0009](0009-self-declared-licences-from-an-index-are-accepted-and-bounded.md) | A self-declared licence from an index is accepted, and the risk stays here | accepted | 2026-09-22 | `AGENTS.md`, `scripts/collect_corpus.py`, `src/meetlat/zeef/corpus.py`, `scripts/check_zeef_contract.py` |
 
 ## By area
 
 - **agents**: [ADR-0006](0006-enforcement-lives-in-scripts.md)
 - **architecture**: [ADR-0001](0001-three-layers-each-certified-by-the-one-below.md)
 - **ijk**: [ADR-0004](0004-the-calibration-gate.md)
-- **infra**: [ADR-0006](0006-enforcement-lives-in-scripts.md), [ADR-0007](0007-the-corpus-carries-provenance-and-register.md)
+- **infra**: [ADR-0006](0006-enforcement-lives-in-scripts.md), [ADR-0007](0007-the-corpus-carries-provenance-and-register.md), [ADR-0009](0009-self-declared-licences-from-an-index-are-accepted-and-bounded.md)
 - **keuring**: [ADR-0003](0003-one-binary-judge-per-criterion.md)
 - **taxonomy**: [ADR-0005](0005-prompts-are-generated-not-maintained.md)
-- **zeef**: [ADR-0002](0002-a-check-is-a-verdict-or-a-distribution.md), [ADR-0007](0007-the-corpus-carries-provenance-and-register.md), [ADR-0008](0008-spelling-is-a-rate-not-a-verdict.md)
+- **zeef**: [ADR-0002](0002-a-check-is-a-verdict-or-a-distribution.md), [ADR-0007](0007-the-corpus-carries-provenance-and-register.md), [ADR-0008](0008-spelling-is-a-rate-not-a-verdict.md), [ADR-0009](0009-self-declared-licences-from-an-index-are-accepted-and-bounded.md)

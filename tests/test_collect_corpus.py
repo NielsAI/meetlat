@@ -65,23 +65,52 @@ def test_extraction_is_scoped_so_the_licence_footer_is_not_collected() -> None:
     assert any("Naamsvermelding" in paragraph for paragraph in unscoped)
 
 
+INDEX_XML = """<?xml version="1.0"?>
+<srw:searchRetrieveResponse xmlns:srw="http://www.loc.gov/zing/srw/">
+  <srw:record><czp:lom xmlns:czp="http://www.imsglobal.org/xsd/imsmd_v1p2">
+    <czp:location>https://maken.wikiwijs.nl/1/Een</czp:location>
+    <czp:location>https://maken.wikiwijs.nl/1/Een/thumbnail.png</czp:location>
+    <czp:contribute>
+      <czp:role><czp:value><czp:langstring>vdex_lifecycle.xmlauthor</czp:langstring></czp:value></czp:role>
+      <czp:centity><czp:vcard>BEGIN:VCARD
+FN:Anne de Vries
+END:VCARD</czp:vcard></czp:centity>
+      <czp:centity><czp:vcard>BEGIN:VCARD
+FN:Joris Bakker
+END:VCARD</czp:vcard></czp:centity>
+    </czp:contribute>
+    <czp:contribute>
+      <czp:role><czp:value><czp:langstring>vdex_lifecycle.xmlpublisher</czp:langstring></czp:value></czp:role>
+      <czp:centity><czp:vcard>BEGIN:VCARD
+FN:Wikiwijs Maken
+END:VCARD</czp:vcard></czp:centity>
+    </czp:contribute>
+  </czp:lom></srw:record>
+  <srw:record><czp:lom xmlns:czp="http://www.imsglobal.org/xsd/imsmd_v1p2">
+    <czp:location>urn:uuid:not-a-url</czp:location>
+    <czp:location>https://maken.wikiwijs.nl/2/Twee</czp:location>
+  </czp:lom></srw:record>
+</srw:searchRetrieveResponse>
+"""
+
+
 def test_the_index_gives_one_page_per_record() -> None:
-    xml = """<?xml version="1.0"?>
-    <srw:searchRetrieveResponse xmlns:srw="http://www.loc.gov/zing/srw/">
-      <srw:record><czp:lom xmlns:czp="http://www.imsglobal.org/xsd/imsmd_v1p2">
-        <czp:location>https://maken.wikiwijs.nl/1/Een</czp:location>
-        <czp:location>https://maken.wikiwijs.nl/1/Een/thumbnail.png</czp:location>
-      </czp:lom></srw:record>
-      <srw:record><czp:lom xmlns:czp="http://www.imsglobal.org/xsd/imsmd_v1p2">
-        <czp:location>urn:uuid:not-a-url</czp:location>
-        <czp:location>https://maken.wikiwijs.nl/2/Twee</czp:location>
-      </czp:lom></srw:record>
-    </srw:searchRetrieveResponse>
-    """
-    assert collect_corpus.index_locations(xml) == [
+    assert [r.url for r in collect_corpus.index_records(INDEX_XML)] == [
         "https://maken.wikiwijs.nl/1/Een",
         "https://maken.wikiwijs.nl/2/Twee",
     ]
+
+
+def test_only_contributors_in_the_author_role_are_credited() -> None:
+    """CC BY asks for the creator. Hosting a lesson is not writing one."""
+    records = collect_corpus.index_records(INDEX_XML)
+    assert records[0].authors == ("Anne de Vries", "Joris Bakker")
+    assert "Wikiwijs Maken" not in records[0].authors
+
+
+def test_a_record_naming_no_author_carries_none_to_credit() -> None:
+    """The collector skips these: an attribution licence with nobody to attribute is not usable."""
+    assert collect_corpus.index_records(INDEX_XML)[1].authors == ()
 
 
 def test_a_keyword_narrows_the_query_without_replacing_the_licence_filter() -> None:
