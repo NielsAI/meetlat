@@ -40,6 +40,10 @@ clean:  ## remove the venv and every cache
 zeef:  ## run the deterministic checks over a file: make zeef ARGS=response.txt
 	@$(VENV)/bin/meetlat zeef $(ARGS)
 
+.PHONY: corpus-sources
+corpus-sources:  ## the declared sources the clean corpus may be collected from
+	@$(PY) scripts/collect_corpus.py --list
+
 .PHONY: checks
 checks:  ## list the registered checks and the ones still designed but unbuilt
 	@$(VENV)/bin/meetlat checks
