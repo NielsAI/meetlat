@@ -44,6 +44,10 @@ zeef:  ## run the deterministic checks over a file: make zeef ARGS=response.txt
 corpus-sources:  ## the declared sources the clean corpus may be collected from
 	@$(PY) scripts/collect_corpus.py --list
 
+.PHONY: review
+review:  ## review collected candidates and append the ones you accept: make review ARGS=batch.jsonl
+	@$(PY) scripts/review_corpus.py $(ARGS)
+
 .PHONY: checks
 checks:  ## list the registered checks and the ones still designed but unbuilt
 	@$(VENV)/bin/meetlat checks

@@ -99,6 +99,7 @@ make checks                   # what is registered, and what is designed but unb
 
 make check          # every offline gate (check-zeef, check-judges)
 make corpus-sources # the declared sources the corpus may be collected from
+make review ARGS=batch.jsonl  # review candidates and append the accepted ones
 make preflight      # everything CI runs: lint, format, types, tests, gates
 make adr-index      # regenerate docs/adr/README.md after adding an ADR
 
