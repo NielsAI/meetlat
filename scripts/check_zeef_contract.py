@@ -32,6 +32,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -41,6 +42,7 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 from meetlat import console, zeef  # noqa: E402  (needs the sys.path line above)
 from meetlat.types import Check, CheckContractError  # noqa: E402
 from meetlat.zeef import corpus, fixtures  # noqa: E402
+from meetlat.zeef.checks import register_consistency, self_repetition  # noqa: E402
 
 
 @dataclass(frozen=True)
@@ -77,6 +79,59 @@ def _audit_fixture(check: Check, fixture: fixtures.Fixture, where: str, out: lis
             actual_value = result.metrics.get(metric)
             if actual_value != expected:
                 out.append(Finding(where, f"{metric}={actual_value} != expected {expected}"))
+
+
+@dataclass(frozen=True)
+class Exercise:
+    """What a corpus paragraph must contain before it tests a verdict check at all.
+
+    Only verdict checks appear here. A distribution can never fail, so no corpus
+    paragraph is evidence about it; a verdict check is the thing the corpus exists to
+    keep honest, and a paragraph it cannot reach is not evidence that it stays quiet on
+    correct Dutch. It is evidence that the check was never asked.
+    """
+
+    needs: str
+    holds: Callable[[str], bool]
+
+
+#: One row per registered verdict check, enforced below the way fixtures are: a check
+#: nobody wrote a row for is a check whose coverage silently reads as whatever the
+#: others happen to give it.
+EXERCISED_BY: dict[str, Exercise] = {
+    # A paragraph with only one side cannot make this fire, so it says nothing about
+    # the narrowing that is the whole point of the check (ADR-0002).
+    # The check's own compiled patterns, so a marker means here exactly what it means
+    # there, trailing-hyphen exclusion included.
+    "register_consistency": Exercise(
+        "an informal and a formal marker in one paragraph",
+        lambda text: bool(
+            register_consistency._ALL_INFORMAL.search(text)
+            and register_consistency._FORMAL.search(text)
+        ),
+    ),
+    # Phrase lookups run over the whole text, so any correct Dutch is evidence that
+    # they do not fire on it.
+    "translationese": Exercise("any prose", lambda text: bool(text.split())),
+    "meta_commentary": Exercise("any prose", lambda text: bool(text.split())),
+    "self_repetition": Exercise(
+        f"at least {self_repetition.WINDOW * 2} words, or no window can repeat",
+        lambda text: len(text.split()) >= self_repetition.WINDOW * 2,
+    ),
+}
+
+
+def _audit_exercise_rows(out: list[Finding]) -> None:
+    for check in zeef.CHECKS:
+        if check.kind == "verdict" and check.name not in EXERCISED_BY:
+            out.append(Finding(check.name, "no EXERCISED_BY row saying what would test it"))
+
+
+def exercise_counts(entries: list[corpus.CorpusEntry]) -> dict[str, int]:
+    return {
+        name: sum(1 for entry in entries if rule.holds(entry.text))
+        for name, rule in EXERCISED_BY.items()
+    }
 
 
 def _audit_resource_licences(repo_root: Path, out: list[Finding]) -> None:
@@ -125,6 +180,7 @@ def audit(repo_root: Path) -> list[Finding]:
     fixture_dir = repo_root / "tests" / "fixtures"
     registered = {check.name: check for check in zeef.CHECKS}
     _audit_resource_licences(repo_root, out)
+    _audit_exercise_rows(out)
 
     for name, check in registered.items():
         if not check.description.strip():
@@ -189,6 +245,15 @@ def main(argv: list[str] | None = None) -> int:
             f"corpus shape: {measured['words']} words, {measured['below_floor']} of "
             f"{len(entries)} below the {corpus.MIN_CHARS}-character paragraph floor"
         )
+        # A verdict check no paragraph can reach passes this gate without being tested,
+        # which reads exactly like passing it. So the reach is printed, not inferred.
+        exercised = exercise_counts(entries)
+        console.note(
+            "corpus exercises: " + "  ".join(f"{name} {count}" for name, count in exercised.items())
+        )
+        for name, count in exercised.items():
+            if count == 0:
+                console.warn(f"no paragraph tests {name}: it needs {EXERCISED_BY[name].needs}")
         # An empty register is named, not left to be inferred from a total (ADR-0007).
         if empty := [register for register, count in counts.items() if count == 0]:
             console.warn(f"no paragraphs for: {', '.join(empty)}")

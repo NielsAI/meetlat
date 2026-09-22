@@ -14,7 +14,9 @@ from __future__ import annotations
 import json
 import warnings
 from collections import Counter
+from collections.abc import Iterable
 from datetime import date
+from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Literal, get_args
 
@@ -123,6 +125,31 @@ def coverage(entries: list[CorpusEntry]) -> dict[Register, int]:
     """
     counted = Counter(entry.register for entry in entries)
     return {register: counted.get(register, 0) for register in get_args(Register)}
+
+
+#: Above this, two paragraphs are the same evidence counted twice. Tuned against the
+#: case that prompted it: a statistics office running a monthly series republishes its
+#: explanatory paragraphs with only the figures changed.
+SIMILARITY = 0.8
+
+
+def near_duplicate(
+    text: str, existing: Iterable[str], *, threshold: float = SIMILARITY
+) -> str | None:
+    """The paragraph `text` is a near-copy of, or None if it is new.
+
+    An exact repeat is easy and already refused. These are the ones that get through:
+    a publisher with a recurring series says the same thing every month with different
+    numbers in it. Two of those in the corpus inflate the count without adding evidence,
+    and they do it in the one file `self_repetition` is measured against.
+    """
+    for other in existing:
+        # Length alone rules most pairs out, and the ratio is the expensive part.
+        if abs(len(text) - len(other)) > max(len(text), len(other), 1) * (1 - threshold):
+            continue
+        if SequenceMatcher(None, text, other).ratio() >= threshold:
+            return other
+    return None
 
 
 def shape(entries: list[CorpusEntry]) -> dict[str, int]:
