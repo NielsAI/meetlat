@@ -67,15 +67,25 @@ jobs:
       - name: Commit-message guard behaves as recorded (ADR-0006)
         run: python scripts/check_commit_msg.py --selftest
 
-  gitleaks:
+  secrets:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      # The official action derives a commit range from the push payload and scans
+      # `<first>^..<last>`. A repository's root commit has no parent, so the very first
+      # push to a new repo fails with "unknown revision 8f46702^..". Running the binary
+      # over the whole history has no range to get wrong, and on a repository this size
+      # it costs under a second.
+      - name: Install gitleaks
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_VERSION: 8.24.3
+        run: |
+          curl -fsSL --retry 3 \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin gitleaks
+          gitleaks version
+      # --redact so a finding never echoes the secret into a public log, which would
+      # turn a warning into a second disclosure.
+      - run: gitleaks detect --source . --redact --verbose
