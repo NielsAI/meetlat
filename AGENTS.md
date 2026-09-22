@@ -40,6 +40,8 @@ exists and passes `make check-judges`.** Do not write copy that implies otherwis
 | A rule an agent must follow while editing | this file | Imperative, current, citing the ADR behind it |
 | A new deterministic check | `src/meetlat/zeef/checks/` plus a fixture | The `/add-zeef-check` skill and the `check-author` agent |
 | A phrase that marks translationese or meta-commentary | `src/meetlat/resources/*.txt` | Never inline in code. A rejected phrase goes in that file's rejected block with the reason |
+| A new task, register or domain | `src/meetlat/taxonomy/` | With its definition in `TASK_MEANS`, or a reason in `UNREACHABLE`. `make check-taxonomy` fails on a value with neither (ADR-0005) |
+| A document a prompt hands the model | `prompts/contexts.jsonl` | Collected by `scripts/collect_contexts.py`. **Never a paragraph from `tests/corpora/`**: the false-positive gate and the evaluation input stay disjoint, or a model that copies its input scores perfectly on layer 1 |
 | A judge prompt or card | `judges/<criterion>/v<n>/` | Versioned. A changed prompt is a new judge (ADR-0003) |
 | Hand labels | `gold/<criterion>-v<n>.jsonl` | **By a person, never by an agent.** A fail-closed guard enforces it |
 | A paragraph of clean Dutch | `tests/corpora/clean_nl.jsonl` | With its provenance, licence and register (ADR-0007). Collected by an agent, **never written by one**: that would make the false-positive gate circular. `scripts/collect_corpus.py` fetches candidates. Where the licence asks for credit, `author` names who wrote it and `source` only says where it was found (ADR-0009) |
@@ -65,7 +67,11 @@ accuracy above 0.85, recomputed by CI from the reconciled labels rather than tru
 Revising a prompt to meet a threshold is legitimate; revising a threshold to meet a judge is not.
 The `/calibrate-judge` skill is the protocol.
 
-**Prompts are generated from a taxonomy, not maintained** (ADR-0005). Not built yet.
+**Prompts are generated from a taxonomy, not maintained** (ADR-0005). Three axes, task ×
+register × domain, expanded from templates and a seed rather than by a model: the seed reproduces
+a release exactly and the specific wording did not exist before it, which is the whole
+contamination argument. A cell nobody can fill is reported as an empty cell with a reason, never
+silently skipped. `make check-taxonomy` enforces it.
 
 **Enforcement is a `scripts/check_*.py` with three callers** (ADR-0006): a `make` target, a CI job,
 and where instant feedback earns it, a hook. The hook is a caller, never the logic. Two kinds of
@@ -117,7 +123,7 @@ Bottom up, because each layer is useful before the next exists (ADR-0001).
 | Step | Output | Done |
 | --- | --- | --- |
 | 1 | Layer 1 as a package: checks, wordlists, fixtures, contract gate | ◐ all 7 checks built; the corpus is 272 entries, 254 of them above the 80-character paragraph floor, so the 200-paragraph exit condition is met and every register floor is clear. What is left is domain reach: `commercial` (21), `everyday` (19) and `care` (22) are thin, and 69% of the text is Dutch government prose |
-| 2 | Taxonomy plus prompt generator | ✘ ADR-0005 records the decision; no code |
+| 2 | Taxonomy plus prompt generator | ◐ `meetlat.taxonomy` built with its gate; 112 of 144 cells generate. `translate` needs a non-Dutch source and `technical`/`education` need context documents |
 | 3 | A hand-labelled set for one criterion, two annotators | ✘ schema and guard exist, no labels |
 | 4 | First calibrated judge plus the written protocol | ◐ protocol and gate exist, no judge |
 | 5 | Runner: endpoint to prompts to layers 1 and 2 to report | ✘ |

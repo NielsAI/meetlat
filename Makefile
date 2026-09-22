@@ -43,6 +43,14 @@ clean:  ## remove the venv and every cache
 zeef:  ## run the deterministic checks over a file: make zeef ARGS=response.txt
 	@$(VENV)/bin/meetlat zeef $(ARGS)
 
+.PHONY: prompts
+prompts:  ## generate an evaluation prompt set: make prompts ARGS="--seed 2026 --per-cell 3"
+	@$(VENV)/bin/meetlat prompts $(ARGS)
+
+.PHONY: contexts
+contexts:  ## collect the documents that document tasks hand to the model (ADR-0005)
+	@$(PY) scripts/collect_contexts.py --all
+
 .PHONY: corpus-sources
 corpus-sources:  ## the declared sources the clean corpus may be collected from
 	@$(PY) scripts/collect_corpus.py --list
@@ -58,11 +66,15 @@ checks:  ## list the registered checks and the ones still designed but unbuilt
 #= Gates (all of these run in CI)
 
 .PHONY: check
-check: check-zeef check-judges check-guard check-commit-msg  ## every offline gate at once
+check: check-zeef check-taxonomy check-judges check-guard check-commit-msg  ## every offline gate at once
 
 .PHONY: check-zeef
 check-zeef:  ## every check has fixtures, exact spans, and no false positives (ADR-0002)
 	@$(PY) scripts/check_zeef_contract.py
+
+.PHONY: check-taxonomy
+check-taxonomy:  ## every cell is defined, generated or declared empty with a reason (ADR-0005)
+	@$(PY) scripts/check_taxonomy.py
 
 .PHONY: check-judges
 check-judges:  ## no judge reports a number its own labels do not support (ADR-0004)

@@ -25,6 +25,12 @@ held by whoever wrote it**, and every entry carries that licence, its source and
 resolvable url in its own record. Nothing here relicenses them and nothing here makes
 them this project's data.
 
+The same is true of `prompts/contexts.jsonl`, the documents that evaluation prompts hand
+to a model (ADR-0005). Every one of them is collected, so every one of them carries its
+own `licence`, `source`, `author` and `url`, and none of them is this project's to
+license. `make check-taxonomy` refuses a document whose licence this project could not
+pass on, and refuses one that also appears in `tests/corpora/`.
+
 This matters in both directions. A CC BY 3.0 paragraph stays CC BY 3.0: that licence
 has no upgrade clause, so redistributing it verbatim as CC BY 4.0 would not be
 permitted, and the per-entry licence field is what keeps it from being claimed as such.

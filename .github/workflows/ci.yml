@@ -60,6 +60,8 @@ jobs:
       - run: pip install -e .
       - name: Layer 1 contract (ADR-0002)
         run: python scripts/check_zeef_contract.py
+      - name: Taxonomy gate (ADR-0005)
+        run: python scripts/check_taxonomy.py
       - name: Calibration gate (ADR-0003, ADR-0004)
         run: python scripts/check_judges.py
       - name: ADR index is current

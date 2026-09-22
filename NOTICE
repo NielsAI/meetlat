@@ -23,6 +23,13 @@ relicensed here, and a CC BY 3.0 paragraph in particular stays CC BY 3.0: that
 licence has no clause allowing it to be passed on as 4.0. The per-entry record is
 the attribution, which is why it is required rather than conventional.
 
+`prompts/contexts.jsonl` holds the documents evaluation prompts hand to a model
+(ADR-0005), and every one of them is collected under the same terms and carries the
+same per-entry record. It is deliberately disjoint from `tests/corpora/`: that corpus
+is selected for the property that no layer 1 check fires on it, so using it as a
+model's input would let a response that copies its input score perfectly on the layer
+that runs on everything.
+
 --------------------------------------------------------------------------------
 Third-party components
 --------------------------------------------------------------------------------

@@ -127,6 +127,37 @@ def _list_checks() -> int:
     return 0
 
 
+def _generate_prompts(seed: int, per_cell: int, as_json: bool) -> int:
+    """Expand the taxonomy into one release's prompt set (ADR-0005).
+
+    Prints JSONL on `--json` and a summary otherwise, because the set is written to a
+    file far more often than it is read on screen: 336 instructions is not a report.
+    """
+    from meetlat.taxonomy import UNREACHABLE, cells
+    from meetlat.taxonomy.generate import coverage, generate, load_contexts
+
+    pool = Path("prompts/contexts.jsonl")
+    contexts = load_contexts(pool) if pool.exists() else []
+    prompts, empty = generate(seed=seed, per_cell=per_cell, contexts=contexts)
+
+    if as_json:
+        for prompt in prompts:
+            print(prompt.model_dump_json())
+        return 0
+
+    console.banner("meetlat · prompts", f"seed {seed}, {per_cell} per cell")
+    console.ok(f"{len(prompts)} prompts over {len(cells()) - len(empty)} of {len(cells())} cells")
+    console.table([(task, str(n)) for task, n in coverage(prompts).items()])
+    console.say()
+    for task, why in UNREACHABLE.items():
+        console.wrap(f"{task}: {why}")
+    for why in sorted({reason for reason in empty.values()}):
+        console.wrap(f"{sum(1 for r in empty.values() if r == why)} cells empty: {why}")
+    console.say()
+    console.note("`--json` writes the set as JSONL; the seed reproduces it exactly")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="meetlat",
@@ -148,9 +179,16 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("checks", help="list the registered checks and the designed ones")
 
+    run_prompts = sub.add_parser("prompts", help="generate an evaluation prompt set (ADR-0005)")
+    run_prompts.add_argument("--seed", type=int, required=True, help="reproduces a release exactly")
+    run_prompts.add_argument("--per-cell", type=int, default=1, metavar="N")
+    run_prompts.add_argument("--json", action="store_true", help="write the set as JSONL")
+
     args = parser.parse_args(argv)
     if args.command == "checks":
         return _list_checks()
+    if args.command == "prompts":
+        return _generate_prompts(args.seed, args.per_cell, args.json)
 
     text = args.path.read_text(encoding="utf-8") if args.path else sys.stdin.read()
     try:
