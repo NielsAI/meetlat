@@ -52,7 +52,8 @@ exists and passes `make check-judges`.** Do not write copy that implies otherwis
 is certain and reports findings; a distribution check reports numbers and can never fail. Every
 finding carries the span it fired on, validated against the response. A verdict check that fires
 once on `tests/corpora/clean_nl.jsonl` does not ship. Where coverage and certainty conflict, choose
-certainty: `de`/`het` agreement and clause word order are excluded for this reason.
+certainty: `de`/`het` agreement, clause word order and invented compounds are excluded for this
+reason (ADR-0008 for the last).
 
 **Layer 2: one criterion per judge, one binary verdict** (ADR-0003). No composite scores, no 1-to-5
 scales. Every score is reported per interaction type; the aggregate is a footnote. A judge is a
@@ -112,7 +113,7 @@ Bottom up, because each layer is useful before the next exists (ADR-0001).
 
 | Step | Output | Done |
 | --- | --- | --- |
-| 1 | Layer 1 as a package: checks, wordlists, fixtures, contract gate | ◐ 5 of 7 checks, and the corpus is 28 paragraphs against an exit condition of 200 |
+| 1 | Layer 1 as a package: checks, wordlists, fixtures, contract gate | ◐ 6 of 7 checks, and the corpus is 28 paragraphs against an exit condition of 200 |
 | 2 | Taxonomy plus prompt generator | ✘ ADR-0005 records the decision; no code |
 | 3 | A hand-labelled set for one criterion, two annotators | ✘ schema and guard exist, no labels |
 | 4 | First calibrated judge plus the written protocol | ◐ protocol and gate exist, no judge |

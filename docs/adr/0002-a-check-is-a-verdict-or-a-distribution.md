@@ -42,7 +42,9 @@ against the response it came from. A failing score has to be readable back to th
 caused it, or it is discouraging rather than actionable.
 
 **Deliberately excluded from layer 1**: `de`/`het` agreement and clause word order. They belong to
-layer 2 or nowhere.
+layer 2 or nowhere. **Invented compounds** joined them in ADR-0008: a decomposer that accepts
+*evaluatie* + *harnas* must also accept *evaluatie* + *huisdier*, so no lexicon can tell them
+apart, and the difference is meaning rather than form.
 
 **Where a check has to choose between coverage and certainty, it chooses certainty.**
 `register_consistency` is the worked example. The obvious implementation fires on `u` plus any

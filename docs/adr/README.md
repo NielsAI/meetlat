@@ -14,6 +14,7 @@ is true *now* lives in `AGENTS.md` and in the gates each ADR names below.
 | [0005](0005-prompts-are-generated-not-maintained.md) | Prompts are generated from a taxonomy, not maintained as a set | accepted | 2026-09-22 | `AGENTS.md` |
 | [0006](0006-enforcement-lives-in-scripts.md) | A rule worth having is a script with three callers | accepted | 2026-09-22 | `AGENTS.md`, `.claude/hooks/README.md`, `Makefile`, `.github/workflows/ci.yml` |
 | [0007](0007-the-corpus-carries-provenance-and-register.md) | The clean corpus carries provenance and a register, per paragraph | accepted | 2026-09-22 | `AGENTS.md`, `scripts/check_zeef_contract.py`, `src/meetlat/zeef/corpus.py` |
+| [0008](0008-spelling-is-a-rate-not-a-verdict.md) | Spelling is reported as a rate, and invented compounds are not detectable | accepted | 2026-09-22 | `AGENTS.md`, `scripts/check_zeef_contract.py` |
 
 ## By area
 
@@ -23,4 +24,4 @@ is true *now* lives in `AGENTS.md` and in the gates each ADR names below.
 - **infra**: [ADR-0006](0006-enforcement-lives-in-scripts.md), [ADR-0007](0007-the-corpus-carries-provenance-and-register.md)
 - **keuring**: [ADR-0003](0003-one-binary-judge-per-criterion.md)
 - **taxonomy**: [ADR-0005](0005-prompts-are-generated-not-maintained.md)
-- **zeef**: [ADR-0002](0002-a-check-is-a-verdict-or-a-distribution.md), [ADR-0007](0007-the-corpus-carries-provenance-and-register.md)
+- **zeef**: [ADR-0002](0002-a-check-is-a-verdict-or-a-distribution.md), [ADR-0007](0007-the-corpus-carries-provenance-and-register.md), [ADR-0008](0008-spelling-is-a-rate-not-a-verdict.md)
