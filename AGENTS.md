@@ -114,7 +114,7 @@ Bottom up, because each layer is useful before the next exists (ADR-0001).
 
 | Step | Output | Done |
 | --- | --- | --- |
-| 1 | Layer 1 as a package: checks, wordlists, fixtures, contract gate | ◐ all 7 checks built, but the corpus is 28 entries against an exit condition of 200 paragraphs, 17 of them below the 80-character floor for what counts as one |
+| 1 | Layer 1 as a package: checks, wordlists, fixtures, contract gate | ◐ all 7 checks built; the corpus is 190 entries against an exit condition of 200 paragraphs, 172 of them above the 80-character floor for what counts as one. Every register floor is cleared, so what is left is domain reach: `technical` has 6 paragraphs and `care` 14, and `formal_u` is 64 of 73 administrative |
 | 2 | Taxonomy plus prompt generator | ✘ ADR-0005 records the decision; no code |
 | 3 | A hand-labelled set for one criterion, two annotators | ✘ schema and guard exist, no labels |
 | 4 | First calibrated judge plus the written protocol | ◐ protocol and gate exist, no judge |

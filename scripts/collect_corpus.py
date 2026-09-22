@@ -9,8 +9,20 @@ that decides whether the corpus is evidence (ADR-0007).
 
 Only declared sources can be fetched, and each names the licence its text arrives
 under. That list is the licensing decision, made once and reviewable, rather than a
-judgement made per URL while scraping. Dutch Wikipedia is deliberately absent: CC BY-SA
-is share-alike and would force this project's data licence to change.
+judgement made per URL while scraping.
+
+Sources considered and refused, so they are not re-proposed:
+
+- **Dutch Wikipedia**: CC BY-SA. Share-alike would force this project's data licence
+  to change, which also rules out most of what is easy to scrape.
+- **RIVM**, **Zorginstituut Nederland**: no licence. Both grant reuse with attribution
+  in prose, which is a permission and not a licence identifier, so there is nothing to
+  record in an entry's `licence` field and nothing a reuser downstream can rely on.
+- **NORA** (noraonline.nl): CC BY-ND 3.0. No-derivatives is incompatible with passing
+  the text on under CC BY 4.0, whatever the excerpt.
+- **KNMI**: CC0 and otherwise a good fit, but its knowledge pages render client-side
+  and this extractor reads HTML. Revisit if it ever ships server-rendered articles.
+- **PDOK**: the CC BY 4.0 there covers map data, not the site's prose.
 
 There are two kinds. A `Source` is a fixed list of pages under one licence. A
 `SearchSource` is an index that finds the pages, which is the only way to reach the
@@ -174,6 +186,88 @@ SOURCES: tuple[Source, ...] = (
             "https://www.belastingdienst.nl/wps/wcm/connect/nl/aftrek-en-kortingen/content/kosten-voor-anbi-aftrekken-als-gift",
             "https://www.belastingdienst.nl/wps/wcm/connect/nl/aftrek-en-kortingen/content/heffingskortingen-laten-uitbetalen",
             "https://www.belastingdienst.nl/wps/wcm/connect/nl/belastingaangifte/content/aangiftechecklist",
+        ),
+    ),
+    Source(
+        name="regelhulp",
+        licence="CC0-1.0",
+        author="Ministerie van Volksgezondheid, Welzijn en Sport",
+        note=(
+            "The health ministry's guide to arranging care and support. CC0 1.0 per "
+            "regelhulp.nl/service/copyright: `Voor deze website geldt de Creative Commons "
+            "zero-verklaring (CC0 1.0)`, with images excluded and any text carrying its own "
+            "copyright notice excluded, which is the same shape as the other two CC0 terms "
+            "here and costs nothing because only <p> text is read. Declared for the `care` "
+            "domain, which every other source reaches only in passing: Wmo, Wlz, pgb, "
+            "mantelzorg and living with a disability, written to the person it concerns."
+        ),
+        urls=(
+            "https://www.regelhulp.nl/onderwerpen/zorg-organiseren/pgb",
+            "https://www.regelhulp.nl/onderwerpen/zorg-organiseren/hulp-en-zorg-regelen",
+            "https://www.regelhulp.nl/onderwerpen/zorg-organiseren/wie-helpt",
+            "https://www.regelhulp.nl/onderwerpen/zorg-organiseren/kwaliteit",
+            "https://www.regelhulp.nl/onderwerpen/zorg-organiseren/wettelijke-vertegenwoordiging",
+            "https://www.regelhulp.nl/onderwerpen/zorg-organiseren/van-jeugd-naar-18",
+            "https://www.regelhulp.nl/onderwerpen/welke-soort/verzorging-verpleging-behandeling",
+            "https://www.regelhulp.nl/onderwerpen/welke-soort/hulpmiddelen",
+            "https://www.regelhulp.nl/onderwerpen/welke-soort/ondersteuning",
+            "https://www.regelhulp.nl/onderwerpen/welke-soort/revalidatie",
+            "https://www.regelhulp.nl/onderwerpen/welke-soort/opvang-en-tijdelijk-verblijf",
+            "https://www.regelhulp.nl/onderwerpen/welke-soort/vervoer-en-beperking",
+            "https://www.regelhulp.nl/onderwerpen/welke-soort/vrije-tijd-en-dagbesteding",
+            "https://www.regelhulp.nl/onderwerpen/welke-soort/werken-met-een-beperking",
+            "https://www.regelhulp.nl/onderwerpen/welke-soort/wonen",
+            "https://www.regelhulp.nl/onderwerpen/welke-soort/zorg-in-laatste-levensfase",
+            "https://www.regelhulp.nl/onderwerpen/welke-soort/jeugd-en-gezin",
+            "https://www.regelhulp.nl/onderwerpen/mijn-situatie/ouderen",
+            "https://www.regelhulp.nl/onderwerpen/mijn-situatie/psychische-klachten",
+            "https://www.regelhulp.nl/onderwerpen/mijn-situatie/lichamelijke-beperking",
+            "https://www.regelhulp.nl/onderwerpen/mijn-situatie/verstandelijke-beperking",
+            "https://www.regelhulp.nl/onderwerpen/mijn-situatie/zintuiglijke-beperking",
+            "https://www.regelhulp.nl/onderwerpen/mijn-situatie/kind",
+            "https://www.regelhulp.nl/onderwerpen/wetten-regels/wmo",
+            "https://www.regelhulp.nl/onderwerpen/wetten-regels/wlz",
+            "https://www.regelhulp.nl/onderwerpen/wetten-regels/jeugdwet",
+            "https://www.regelhulp.nl/onderwerpen/wetten-regels/zorgverzekeringswet-zvw",
+            "https://www.regelhulp.nl/onderwerpen/wetten-regels/dwang-in-de-zorg",
+        ),
+    ),
+    Source(
+        name="digitaleoverheid",
+        licence="CC0-1.0",
+        author="Ministerie van Binnenlandse Zaken en Koninkrijksrelaties",
+        note=(
+            "The Dutch government's own site about its digitalisation. CC0 1.0 per "
+            "digitaleoverheid.nl/copyright: `Tenzij anders vermeld is op de inhoud van deze "
+            "website de Creative Commons zero verklaring (CC0 1.0) van toepassing`. Declared "
+            "for the `technical` domain, which the education index cannot reach: a search for "
+            "`informatica` there returns material about teaching the subject, not prose about "
+            "how a thing works. Read what it yields as technology written about rather than "
+            "documented, and expect a share of it to tag as business or administrative."
+        ),
+        urls=(
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/algoritmes/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/artificiele-intelligentie-ai/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/cybersecurity/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/cyberbeveiligingswet/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/quantumveilige-cryptografie/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/open-standaarden/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/opensourcewerken/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/stelsel-van-basisregistraties/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/stelsel-toegang/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/identiteit/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/data/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/informatiehuishouding/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/cookies-en-online-tracking/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/privacy/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/digitale-vaardigheden/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/digitale-inclusie/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/digitaal-zakendoen/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/berichtenbox-voor-bedrijven/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/desinformatie/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/innovatie/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/online-kinderrechten/",
+            "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/open-overheid/",
         ),
     ),
 )
