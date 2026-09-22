@@ -13,9 +13,11 @@ So this does:
   * **Spans are exact.** A `fires` case lists the literal text of every span, in
     order. This is what makes a finding debuggable rather than discouraging: when a
     span drifts, the fixture says so.
-  * **The clean corpus stays clean.** Every verdict check runs over every line of
-    `tests/corpora/clean_nl.txt`, natural Dutch written by a person. One firing there
-    is a false positive, and a check that cries wolf gets switched off.
+  * **The clean corpus stays clean.** Every verdict check runs over every paragraph
+    of `tests/corpora/clean_nl.jsonl`, natural Dutch written by a person. One firing
+    there is a false positive, and a check that cries wolf gets switched off. Each
+    paragraph carries its provenance and licence, and the per-register counts are
+    printed so a corpus that covers one register cannot pass for breadth (ADR-0007).
   * **Distribution checks report no verdicts** and verdict checks report no metrics,
     so nobody can quietly turn a tunable number into a pass or a fail.
   * **Every wordlist says where it came from.** A vendored list arrives under its own
@@ -37,7 +39,7 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from meetlat import console, zeef  # noqa: E402  (needs the sys.path line above)
 from meetlat.types import Check, CheckContractError  # noqa: E402
-from meetlat.zeef import fixtures  # noqa: E402
+from meetlat.zeef import corpus, fixtures  # noqa: E402
 
 
 @dataclass(frozen=True)
@@ -46,12 +48,8 @@ class Finding:
     what: str
 
 
-def corpus_lines(path: Path) -> list[str]:
-    return [
-        line
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip() and not line.startswith("#")
-    ]
+def corpus_path(repo_root: Path) -> Path:
+    return repo_root / "tests" / "corpora" / "clean_nl.jsonl"
 
 
 def _audit_fixture(check: Check, fixture: fixtures.Fixture, where: str, out: list[Finding]) -> None:
@@ -134,15 +132,20 @@ def audit(repo_root: Path) -> list[Finding]:
         if path.stem not in registered:
             out.append(Finding(f"tests/fixtures/{path.name}", "fixture for no registered check"))
 
-    corpus = repo_root / "tests" / "corpora" / "clean_nl.txt"
-    for line_no, line in enumerate(corpus_lines(corpus), start=1):
+    try:
+        entries = corpus.load(corpus_path(repo_root))
+    except (OSError, ValueError) as exc:
+        out.append(Finding("tests/corpora/clean_nl.jsonl", str(exc)))
+        return out
+
+    for entry in entries:
         for check in zeef.CHECKS:
             if check.kind != "verdict":
                 continue
-            for finding in check.run(line).findings:
+            for finding in check.run(entry.text).findings:
                 out.append(
                     Finding(
-                        f"tests/corpora/clean_nl.txt:{line_no}",
+                        f"tests/corpora/clean_nl.jsonl#{entry.id}",
                         f"false positive in {check.name}: {finding.span.text!r}",
                     )
                 )
@@ -156,12 +159,18 @@ def main(argv: list[str] | None = None) -> int:
 
     findings = audit(args.root)
     if not findings:
-        clean = len(corpus_lines(args.root / "tests" / "corpora" / "clean_nl.txt"))
-        planned = ", ".join(zeef.PLANNED) or "none"
-        console.ok(
-            f"zeef contract ok · {len(zeef.CHECKS)} checks · {clean} clean lines · "
-            f"planned: {planned}"
+        entries = corpus.load(corpus_path(args.root))
+        console.ok(f"zeef contract ok · {len(zeef.CHECKS)} checks · {len(entries)} paragraphs")
+        counts = corpus.coverage(entries)
+        console.note(
+            "corpus by register: "
+            + "  ".join(f"{register} {count}" for register, count in counts.items())
         )
+        # An empty register is named, not left to be inferred from a total (ADR-0007).
+        if empty := [register for register, count in counts.items() if count == 0]:
+            console.warn(f"no paragraphs for: {', '.join(empty)}")
+        if planned := ", ".join(zeef.PLANNED):
+            console.note(f"checks designed but not built: {planned}")
         return 0
 
     console.heading("zeef contract violations (ADR-0002)", stderr=True)
