@@ -116,7 +116,7 @@ Bottom up, because each layer is useful before the next exists (ADR-0001).
 
 | Step | Output | Done |
 | --- | --- | --- |
-| 1 | Layer 1 as a package: checks, wordlists, fixtures, contract gate | ◐ all 7 checks built; the corpus is 302 entries, 284 of them above the 80-character paragraph floor, so the 200-paragraph exit condition is met and every register floor is clear. What is left is domain reach: `commercial` (21) and `everyday` (19) are thin, and 69% of the text is Dutch government prose |
+| 1 | Layer 1 as a package: checks, wordlists, fixtures, contract gate | ◐ all 7 checks built; the corpus is 272 entries, 254 of them above the 80-character paragraph floor, so the 200-paragraph exit condition is met and every register floor is clear. What is left is domain reach: `commercial` (21), `everyday` (19) and `care` (22) are thin, and 69% of the text is Dutch government prose |
 | 2 | Taxonomy plus prompt generator | ✘ ADR-0005 records the decision; no code |
 | 3 | A hand-labelled set for one criterion, two annotators | ✘ schema and guard exist, no labels |
 | 4 | First calibrated judge plus the written protocol | ◐ protocol and gate exist, no judge |

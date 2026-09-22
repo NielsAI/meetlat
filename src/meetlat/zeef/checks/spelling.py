@@ -20,14 +20,14 @@ at 5, *taalmodelbeoordeling* stops decomposing on `taal`. Genuine misspellings
 (`onstaan` for `ontstaan`, `teh` for `the`) do not decompose under these rules and
 are counted, which is what the metric is for.
 
-**What normal looks like**: 20.9 per 1000 over the 302-entry clean corpus
-(8548 words, 179 out-of-vocabulary tokens, 104 distinct). `words` counts only tokens carrying a
+**What normal looks like**: 19.8 per 1000 over the 272-entry clean corpus
+(7993 words, 158 out-of-vocabulary tokens, 87 distinct). `words` counts only tokens carrying a
 letter, because a word list cannot adjudicate a numeral and whether it holds one is an
 accident: `010` is in it and `24` is not.
 
 That figure was 0.00 while the corpus was 28 paragraphs a person wrote by hand, and it has
 risen at every step since the corpus was collected from the world instead: 13.4 at 190
-paragraphs, 20.9 at 302. What rises it is exactly what ADR-0008 said would: `ANBI`,
+paragraphs, 19.8 at 272. What rises it is exactly what ADR-0008 said would: `ANBI`,
 `Digikoppeling`, `Cbw`, `Teletolk`, `Tamazight`, `stop-motion`, `Eustatius`. Names, jargon
 and hyphenated coinages, not misspellings, and the rise tracks how much government IT prose
 the corpus holds rather than any change in the check. Read a checkpoint's rate against this,

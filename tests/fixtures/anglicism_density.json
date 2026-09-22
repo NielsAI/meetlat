@@ -4,19 +4,83 @@
   "metrics": [
     {
       "text": "Beste klant, uw bestelling is verzonden. Neem contact op bij vragen over de bezorging.",
-      "expect": {"words": 14, "anglicisms": 0, "per_1000": 0}
+      "expect": {
+        "words": 14,
+        "anglicisms": 0,
+        "per_1000": 0
+      }
     },
     {
       "text": "Beste customer, uw purchase is verzonden. Neem contact op bij questions over de shipping.",
-      "expect": {"words": 14, "anglicisms": 3, "distinct": 3, "per_1000": 214.29}
+      "expect": {
+        "words": 14,
+        "anglicisms": 3,
+        "distinct": 3,
+        "per_1000": 214.29
+      }
     },
     {
       "text": "De server draait online en de laatste update is via e-mail naar het team gestuurd.",
-      "expect": {"words": 15, "anglicisms": 0}
+      "expect": {
+        "words": 15,
+        "anglicisms": 0
+      }
     },
     {
       "text": "",
-      "expect": {"words": 0}
+      "expect": {
+        "words": 0
+      }
+    },
+    {
+      "text": "de Europese Network and Information Security directive, of NIS2-richtlijn",
+      "expect": {
+        "words": 9,
+        "anglicisms": 0,
+        "distinct": 0,
+        "in_names": 1,
+        "per_1000": 0.0
+      }
+    },
+    {
+      "text": "het privacyteam van CIO (Chief Information Officer) Rijk",
+      "expect": {
+        "words": 8,
+        "anglicisms": 0,
+        "distinct": 0,
+        "in_names": 1,
+        "per_1000": 0.0
+      }
+    },
+    {
+      "text": "Information over uw aanvraag vindt u op de website van de gemeente.",
+      "expect": {
+        "words": 12,
+        "anglicisms": 1,
+        "distinct": 1,
+        "in_names": 0,
+        "per_1000": 83.33
+      }
+    },
+    {
+      "text": "Wij werken in Nederland. Information is hier belangrijk voor iedereen.",
+      "expect": {
+        "words": 10,
+        "anglicisms": 1,
+        "distinct": 1,
+        "in_names": 0,
+        "per_1000": 100.0
+      }
+    },
+    {
+      "text": "Het Customer Service team behandelt uw melding binnen vijf werkdagen.",
+      "expect": {
+        "words": 10,
+        "anglicisms": 0,
+        "distinct": 0,
+        "in_names": 1,
+        "per_1000": 0.0
+      }
     }
   ]
 }

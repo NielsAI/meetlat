@@ -353,6 +353,12 @@ SEARCH_SOURCES: tuple[SearchSource, ...] = (
 )
 
 
+#: Classes a publisher puts on a paragraph that summarises something else: a card in a
+#: news listing, a byline, a date. The text is real Dutch and is not a quote of anything
+#: at the url it would be recorded against, which is the one promise a corpus entry makes.
+_TEASER_CLASSES = frozenset({"excerpt", "meta", "more", "teaser", "intro-text", "summary"})
+
+
 class _Paragraphs(HTMLParser):
     """Text inside <p>, with tags and script/style dropped.
 
@@ -362,6 +368,16 @@ class _Paragraphs(HTMLParser):
     `within` narrows collection to the elements carrying that class. Without it a page
     whose licence footer is written out in prose contributes that footer to the corpus,
     once per page, which `self_repetition` would then be measured against.
+
+    A `<p>` carrying one of `_TEASER_CLASSES` is dropped whatever it says. A listing
+    teaser is a complete, well-formed sentence about an article, written for the listing
+    and living nowhere else: it passes the length floor, it passes `_TRUNCATED` because
+    nothing is cut off, and it reads as prose. What it is not is text at the url that
+    would be recorded for it. digitaleoverheid.nl publishes `Dat zorgt voor een
+    betrouwbaar en volledig gestandaardiseerd proces` in a listing while the article it
+    points at says `Dat maakt het proces betrouwbaar, veilig en volledig
+    gestandaardiseerd`, so the teaser cannot be re-cited to the article either. Ten such
+    paragraphs reached the corpus before this existed.
     """
 
     def __init__(self, within: str = "") -> None:
@@ -371,6 +387,7 @@ class _Paragraphs(HTMLParser):
         self._scope: int | None = None
         self._depth = 0
         self._skip = 0
+        self._teaser = False
         self._buffer: list[str] = []
         self.paragraphs: list[str] = []
 
@@ -385,6 +402,9 @@ class _Paragraphs(HTMLParser):
             self._skip += 1
         elif tag == "p":
             self._depth += 1
+            if not self._teaser:
+                marks = set((dict(attrs).get("class") or "").split())
+                self._teaser = bool(marks & _TEASER_CLASSES)
 
     def handle_endtag(self, tag: str) -> None:
         if tag in {"script", "style", "nav", "footer"}:
@@ -393,7 +413,8 @@ class _Paragraphs(HTMLParser):
             self._depth -= 1
             text = re.sub(r"\s+", " ", "".join(self._buffer)).strip()
             self._buffer.clear()
-            if text and (not self._within or self._scope is not None):
+            teaser, self._teaser = self._teaser, False
+            if text and not teaser and (not self._within or self._scope is not None):
                 self.paragraphs.append(text)
         if tag == "div":
             if self._scope == self._divs:

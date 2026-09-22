@@ -143,3 +143,32 @@ def test_a_truncated_teaser_is_not_a_paragraph() -> None:
     )
     assert collect_corpus.paragraphs_from(teaser) == []
     assert len(collect_corpus.paragraphs_from(whole)) == 1
+
+
+def test_a_listing_teaser_is_not_collected_as_a_paragraph() -> None:
+    """A news card is a complete sentence about an article, living nowhere but the listing.
+
+    It passes the length floor and the truncation guard, so nothing else catches it, and
+    the text it would be cited for is not at the url that would be recorded. Thirty such
+    paragraphs reached the corpus before this existed.
+    """
+    html = """
+    <div class="griditem">
+      <h3><a href="/nieuws/peppol/">Tijdkaarten via Peppol</a></h3>
+      <p class="meta">Gepubliceerd op 1 mei 2026</p>
+      <p class="excerpt">De overheid verzendt tijdkaarten van uitzendkrachten nu elektronisch
+      via het Peppol-netwerk. Dat zorgt voor een betrouwbaar en gestandaardiseerd proces.</p>
+    </div>
+    <p>De overheid verzendt tijdkaarten van uitzendkrachten voortaan elektronisch via het
+    Peppol netwerk. Dat maakt het proces betrouwbaar, veilig en volledig gestandaardiseerd.</p>
+    """
+    kept = collect_corpus.paragraphs_from(html)
+    assert len(kept) == 1
+    assert kept[0].startswith("De overheid verzendt tijdkaarten van uitzendkrachten voortaan")
+    assert not any("Gepubliceerd op" in p for p in kept)
+
+
+def test_an_ordinary_paragraph_with_a_class_is_still_collected() -> None:
+    """The filter names the classes that mark a summary, rather than refusing every class."""
+    html = '<p class="intro">Een standaard is een afspraak die is vastgelegd in een document, en die ICT-systemen allebei moeten hanteren om gegevens uit te wisselen.</p>'
+    assert len(collect_corpus.paragraphs_from(html)) == 1
