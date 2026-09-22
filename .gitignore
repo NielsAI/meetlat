@@ -20,3 +20,6 @@ runs/
 
 # Phase plan
 docs/agent-phases.md
+
+# Review batches: working files, not repository content
+batches/
