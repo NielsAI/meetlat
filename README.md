@@ -65,8 +65,9 @@ echo "Beste klant, u kunt uw bestelling annuleren. Laten we erin duiken, dan wee
   ✔ meta_commentary
   ✔ self_repetition
   ◦ sentence_length         sentences 2  words 20  mean 10  median 10  p90 13  max 13
+  ◦ anglicism_density       words 20  anglicisms 0  distinct 0  per_1000 0
 
-  ✘ zeef failed · 2 of 5 checks · 5 findings
+  ✘ zeef failed · 2 of 6 checks · 5 findings
 ```
 
 `meetlat zeef --json` for the machine-readable form, and `meetlat checks` for what is registered
@@ -85,12 +86,14 @@ discouraging.
 | `meta_commentary` | verdict | "Als AI-model kan ik…" and its relatives |
 | `self_repetition` | verdict | An eight-word sequence repeated verbatim |
 | `sentence_length` | distribution | Style drift between checkpoints. Reports numbers, never a verdict |
+| `anglicism_density` | distribution | English where an ordinary Dutch word exists, as a rate per 1000 words |
 
 Two design rules make this layer worth running. **A check either has no false positives or it
 reports a distribution rather than a verdict**, because a checker that cries wolf gets switched
-off. And **coverage never wins over certainty**: `de`/`het` agreement and clause word order are
-deliberately excluded, and `anglicism_density` and `spelling` are designed but unbuilt because
-both need a wordlist before they can meet that bar. `meetlat checks` shows the gaps.
+off. And **coverage never wins over certainty**: `de`/`het` agreement, clause word order and
+invented compounds are deliberately excluded, and `spelling` reports a rate rather than a verdict
+for the same reason (ADR-0008). It is the one check still unbuilt, because it needs a vendored
+wordlist first. `meetlat checks` shows the gaps.
 
 CI enforces it: every verdict check runs over a corpus of natural Dutch written by a person, and a
 single firing there fails the build.
