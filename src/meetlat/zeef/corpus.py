@@ -124,8 +124,13 @@ PER_REGISTER = 25
 #: Licences whose text this project may redistribute under CC BY 4.0. CC BY-SA is
 #: absent on purpose: share-alike would force this repository's data licence to
 #: change, which rules out Dutch Wikipedia and most of what is easy to scrape.
+#: `OGL-UK-3.0` is here on the licence's own word: it grants the right to "adapt the
+#: Information" and states that its terms "are compatible with the Creative Commons
+#: Attribution License 4.0". Adaptation is the clause that matters, because translating
+#: a document is adapting it, and it is the clause several public-domain-ish government
+#: sites turn out not to grant.
 REDISTRIBUTABLE: frozenset[str] = frozenset(
-    {"CC0-1.0", "CC-BY-4.0", "CC-BY-3.0", "LicenseRef-PublicDomain"}
+    {"CC0-1.0", "CC-BY-4.0", "CC-BY-3.0", "LicenseRef-PublicDomain", "OGL-UK-3.0"}
 )
 
 #: Licences that make naming the creator a condition of passing the text on. CC0 and

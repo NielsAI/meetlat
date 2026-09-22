@@ -24,6 +24,20 @@ Sources considered and refused, so they are not re-proposed:
   and this extractor reads HTML. Revisit if it ever ships server-rendered articles.
 - **PDOK**: the CC BY 4.0 there covers map data, not the site's prose.
 
+Refused as English sources for the `translate` task, where the binding clause turned out
+not to be the licence but whether it permits *adaptation*, since translating a document
+is adapting it:
+
+- **CDC**: public domain, but conditions the grant on `don't alter substantive content`.
+- **NASA**: not subject to copyright, but restricts use of its material in AI.
+- **MedlinePlus**, **NIST**: mixed. Both host third-party copyrighted material alongside
+  federal work, and the reusable half is not separable by URL.
+- **government.nl**: CC0 and otherwise ideal, and refused for a different reason: its
+  English is translated *from* Dutch, so the reference translation is published. A model
+  may reproduce it from memory rather than translate, which is contamination of the
+  expected output and worse than contamination of the prompt.
+- **EU institutions**: same problem. Every document has an official Dutch version.
+
 There are two kinds. A `Source` is a fixed list of pages under one licence. A
 `SearchSource` is an index that finds the pages, which is the only way to reach the
 informal registers: CC0 Dutch is written by governments and governments write `u`.
@@ -97,6 +111,16 @@ class Source:
     feed: str = ""
     #: Which links on that page are articles rather than navigation.
     article: str = ""
+    #: The class of the element holding the body text, where a page wraps it in one.
+    #: Without it a site's cookie banner and its consent copy are collected as prose,
+    #: which is the same failure `within` already solves for the indexed source.
+    within: str = ""
+    #: BCP 47 language of this source's text. `collect_corpus.py` refuses anything but
+    #: `nl`, because the clean corpus is the evidence that a Dutch check does not fire
+    #: on correct Dutch and an English paragraph in it proves nothing. A non-Dutch
+    #: source is declared here so `collect_contexts.py` can reach it for the translate
+    #: task, which is the one task whose input is not Dutch.
+    language: str = "nl"
 
 
 @dataclass(frozen=True)
@@ -328,6 +352,53 @@ SOURCES: tuple[Source, ...] = (
             "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/innovatie/",
             "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/online-kinderrechten/",
             "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/open-overheid/",
+        ),
+    ),
+    Source(
+        name="govuk",
+        licence="OGL-UK-3.0",
+        author="UK Government",
+        language="en",
+        within="gem-c-govspeak",
+        note=(
+            "UK government guidance, in English, under the Open Government Licence v3.0. "
+            "Declared for the `translate` task and read only by `collect_contexts.py`: "
+            "the clean corpus is Dutch and refuses this source. OGL was chosen over the "
+            "US federal sites for one clause. It grants the right to `adapt the "
+            "Information` and says its terms `are compatible with the Creative Commons "
+            "Attribution License 4.0`, where CDC's public-domain grant requires that you "
+            "`don't alter substantive content` and NASA's restricts use in AI. "
+            "Translating a document is adapting it, so a licence that forbids alteration "
+            "forbids the task. English written as English, not translated from Dutch, "
+            "which government.nl would have been: a source whose Dutch original is "
+            "published is a source a model may reproduce from memory rather than "
+            "translate."
+        ),
+        urls=(
+            "https://www.gov.uk/accepting-returns-and-giving-refunds",
+            "https://www.gov.uk/consumer-protection-rights",
+            "https://www.gov.uk/online-and-distance-selling-for-businesses",
+            "https://www.gov.uk/product-safety-for-businesses",
+            "https://www.gov.uk/food-safety-your-responsibilities",
+            "https://www.gov.uk/guidance/food-labelling-giving-food-information-to-consumers",
+            "https://www.gov.uk/taking-a-pet-abroad",
+            "https://www.gov.uk/report-dead-animal",
+            "https://www.gov.uk/council-housing",
+            "https://www.gov.uk/housing-benefit",
+            "https://www.gov.uk/apply-for-council-tax-discount",
+            "https://www.gov.uk/complain-about-your-council",
+            "https://www.gov.uk/carers-allowance",
+            "https://www.gov.uk/apply-needs-assessment-social-services",
+            "https://www.gov.uk/attendance-allowance",
+            "https://www.gov.uk/help-with-health-costs",
+            "https://www.gov.uk/school-attendance-absence",
+            "https://www.gov.uk/complain-about-school",
+            "https://www.gov.uk/types-of-school",
+            "https://www.gov.uk/further-education-courses",
+            "https://www.gov.uk/data-protection",
+            "https://www.gov.uk/guidance/keeping-your-data-secure",
+            "https://www.gov.uk/government/publications/cyber-essentials-scheme-overview",
+            "https://www.gov.uk/guidance/being-online-the-basics",
         ),
     ),
 )
@@ -603,7 +674,7 @@ def collect(
         except Exception as exc:
             console.warn(f"{url}: {exc}")
             continue
-        found = paragraphs_from(page.text)
+        found = paragraphs_from(page.text, within=source.within)
         console.note(f"{len(found)} usable paragraph(s) from {page.url}")
         for text in found:
             if len(candidates) >= limit:
@@ -728,6 +799,15 @@ def main(argv: list[str] | None = None) -> int:
 
     contains = re.compile(args.contains, re.IGNORECASE) if args.contains else None
     matched = next((s for s in SOURCES if s.name == args.source), None)
+    # The clean corpus is the evidence that a Dutch check does not fire on correct Dutch,
+    # so an English paragraph in it proves nothing about anything. A non-Dutch source is
+    # declared for `collect_contexts.py` and refused here rather than left to a reviewer
+    # to notice at three in the afternoon.
+    if matched is not None and matched.language != "nl":
+        console.fail(
+            f"{matched.name} is {matched.language}, and the clean corpus is Dutch; "
+            f"`scripts/collect_contexts.py --source {matched.name}` is where it is read"
+        )
     searched = next((s for s in SEARCH_SOURCES if s.name == args.source), None)
     if searched is not None:
         console.banner(

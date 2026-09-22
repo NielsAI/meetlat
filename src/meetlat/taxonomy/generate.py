@@ -137,6 +137,16 @@ _TEMPLATES: Final[dict[str, tuple[str, ...]]] = {
         "Noem welke feiten in de onderstaande tekst staan over data, bedragen en termijnen. {ask}",
         "Zet de concrete gegevens uit de tekst hieronder op een rij. {ask}",
     ),
+    # The source is English, so the instruction says so. `translationese` firing on the
+    # output of these is not a false positive and is the most informative signal in the
+    # set: a calque is exactly what a bad translation produces, which makes this the one
+    # task where that check is measuring the task rather than the writing around it.
+    "translate": (
+        "Vertaal de Engelse tekst hieronder naar natuurlijk Nederlands. {ask}",
+        "Zet de onderstaande Engelse tekst om in goed lopend Nederlands. {ask}",
+        "Vertaal de tekst hieronder uit het Engels, en vermijd letterlijke vertalingen "
+        "die in het Nederlands niet natuurlijk klinken. {ask}",
+    ),
     "draft": (
         "Schrijf een kort bericht over {subject}. {ask}",
         "Stel een korte tekst op over {subject}. {ask}",
@@ -167,6 +177,10 @@ class ContextDocument(BaseModel):
     id: str = Field(min_length=1)
     text: str = Field(min_length=1)
     domain: Domain
+    #: What language this document is written in. `translate` is the one task whose input
+    #: is not Dutch, so the pool holds both and the generator draws by language rather
+    #: than handing an English document to a rewrite task.
+    language: str = "nl"
     source: str = Field(min_length=1)
     licence: str = Field(min_length=1)
     author: str = ""
@@ -195,6 +209,12 @@ with warnings.catch_warnings():
         #: The seed this prompt was drawn with, so a published number can name the set
         #: it was measured over and that set can be rebuilt exactly.
         seed: int
+
+
+#: What language a task's source document is in. Only `translate` differs, and that is
+#: the whole of what makes it a different task: it is the one place a model is asked to
+#: produce Dutch from something that is not Dutch.
+SOURCE_LANGUAGE: Final[dict[str, str]] = {"translate": "en"}
 
 
 def load_contexts(path: Path) -> list[ContextDocument]:
@@ -226,7 +246,12 @@ def for_cell(
 
     context_id = ""
     if cell.task in NEEDS_CONTEXT:
-        usable = [document for document in contexts if document.domain == cell.domain]
+        wanted = SOURCE_LANGUAGE.get(cell.task, "nl")
+        usable = [
+            document
+            for document in contexts
+            if document.domain == cell.domain and document.language == wanted
+        ]
         if not usable:
             return None
         context_id = rng.choice(usable).id

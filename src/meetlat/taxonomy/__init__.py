@@ -100,7 +100,7 @@ TASK_MEANS: dict[str, Meaning] = {
 #: reason to the other two: it needs a source in *another* language, which is why it is
 #: in `UNREACHABLE` rather than here.
 NEEDS_CONTEXT: frozenset[str] = frozenset(
-    {"rewrite", "summarise", "answer_from_context", "extract"}
+    {"rewrite", "summarise", "answer_from_context", "extract", "translate"}
 )
 
 
@@ -120,18 +120,10 @@ class Cell:
 #: of being silently skipped. The key is a `Task`; a reason here rules out that task in
 #: every register and domain.
 #:
-#: `translate` is the only entry and it is a real gap rather than a missing template.
-#: The task is to produce Dutch from a source in another language, so it needs a
-#: non-Dutch context corpus, and every declared source in `collect_corpus.py` is Dutch.
-#: It is also the one task where `translationese` firing is not obviously a defect,
-#: since a translation is influenced by its source by definition, so the cell needs a
-#: decision about scoring before it needs text. Both are worth doing; neither is done.
-UNREACHABLE: dict[str, str] = {
-    "translate": (
-        "needs a source document in another language, and every declared corpus source "
-        "is Dutch; parallel CC0 government pages are the obvious way in"
-    ),
-}
+#: Empty, and worth keeping rather than deleting. `translate` lived here until an English
+#: source under a licence permitting adaptation was found, and the mechanism is what made
+#: that gap visible every run instead of looking like a task nobody had got to.
+UNREACHABLE: dict[str, str] = {}
 
 
 def cells(*, include_unreachable: bool = False) -> list[Cell]:

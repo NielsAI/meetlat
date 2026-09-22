@@ -123,7 +123,7 @@ Bottom up, because each layer is useful before the next exists (ADR-0001).
 | Step | Output | Done |
 | --- | --- | --- |
 | 1 | Layer 1 as a package: checks, wordlists, fixtures, contract gate | ◐ all 7 checks built; the corpus is 272 entries, 254 of them above the 80-character paragraph floor, so the 200-paragraph exit condition is met and every register floor is clear. What is left is domain reach: `commercial` (21), `everyday` (19) and `care` (22) are thin, and 69% of the text is Dutch government prose |
-| 2 | Taxonomy plus prompt generator | ◐ `meetlat.taxonomy` built with its gate; 112 of 144 cells generate. `translate` needs a non-Dutch source and `technical`/`education` need context documents |
+| 2 | Taxonomy plus prompt generator | ◐ `meetlat.taxonomy` built with its gate; 136 of 168 cells generate, all 7 tasks reachable. The 32 empty cells are Dutch `technical` and `education` context documents |
 | 3 | A hand-labelled set for one criterion, two annotators | ✘ schema and guard exist, no labels |
 | 4 | First calibrated judge plus the written protocol | ◐ protocol and gate exist, no judge |
 | 5 | Runner: endpoint to prompts to layers 1 and 2 to report | ✘ |

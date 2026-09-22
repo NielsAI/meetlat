@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from meetlat.taxonomy import NEEDS_CONTEXT, TASK_MEANS, UNREACHABLE, Cell, cells
+from meetlat.taxonomy import NEEDS_CONTEXT, TASK_MEANS, UNREACHABLE, cells
 from meetlat.taxonomy.generate import (
     _TEMPLATES,
     ContextDocument,
@@ -21,12 +21,13 @@ from meetlat.taxonomy.generate import (
 )
 
 
-def _document(doc_id: str, domain: str) -> ContextDocument:
+def _document(doc_id: str, domain: str, language: str = "nl") -> ContextDocument:
     return ContextDocument.model_validate(
         {
             "id": doc_id,
             "text": "Een standaard is een afspraak.\n\nICT-systemen moeten dezelfde standaard hanteren.",
             "domain": domain,
+            "language": language,
             "source": "digitaleoverheid",
             "licence": "CC0-1.0",
             "url": "https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/open-standaarden/",
@@ -76,11 +77,32 @@ def test_a_task_that_needs_a_document_never_ships_without_one() -> None:
 
 
 def test_an_unreachable_task_generates_nothing_and_says_why() -> None:
+    """The mechanism, not a particular task. UNREACHABLE is empty now that `translate`
+    has an English source, and it earned its keep while it was not."""
     prompts, _ = generate(seed=6, per_cell=2)
     for task, why in UNREACHABLE.items():
         assert not [p for p in prompts if p.task == task]
         assert why.strip(), f"{task} is unreachable with no reason"
-    assert Cell("translate", "formal_u", "administrative") not in cells()
+        assert task not in {cell.task for cell in cells()}
+
+
+def test_translate_draws_an_english_document_and_the_rest_draw_dutch() -> None:
+    """Translate is the one task whose input is not Dutch; that is what makes it one."""
+    pool = [_document("ctx-nl", "care"), _document("ctx-en", "care", language="en")]
+    prompts, _ = generate(seed=9, per_cell=1, contexts=pool)
+    by_id = {d.id: d for d in pool}
+    for prompt in prompts:
+        if not prompt.context_id:
+            continue
+        want = "en" if prompt.task == "translate" else "nl"
+        assert by_id[prompt.context_id].language == want, prompt.task
+
+
+def test_translate_never_hands_a_dutch_document_to_a_translation_task() -> None:
+    """With only Dutch contexts the cell stays empty rather than asking for a no-op."""
+    prompts, empty = generate(seed=10, per_cell=1, contexts=[_document("ctx-nl", "care")])
+    assert not [p for p in prompts if p.task == "translate"]
+    assert any(c.task == "translate" for c in empty)
 
 
 def test_every_task_is_either_templated_or_declared_unreachable() -> None:

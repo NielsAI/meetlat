@@ -56,6 +56,31 @@ _DOMAIN_BY_PATH: tuple[tuple[str, str], ...] = (
     ("cbs.nl", "commercial"),
     ("belastingdienst.nl", "administrative"),
     ("rijksoverheid.nl", "administrative"),
+    # gov.uk, in English, for the translate task. Its paths are one topic each, so the
+    # rules are per page rather than per section.
+    ("gov.uk/accepting-returns", "commercial"),
+    ("gov.uk/consumer-protection-rights", "commercial"),
+    ("gov.uk/online-and-distance-selling", "commercial"),
+    ("gov.uk/product-safety", "commercial"),
+    ("gov.uk/food-safety", "everyday"),
+    ("gov.uk/guidance/food-labelling", "everyday"),
+    ("gov.uk/taking-a-pet-abroad", "everyday"),
+    ("gov.uk/report-dead-animal", "everyday"),
+    ("gov.uk/council-housing", "administrative"),
+    ("gov.uk/housing-benefit", "administrative"),
+    ("gov.uk/apply-for-council-tax-discount", "administrative"),
+    ("gov.uk/complain-about-your-council", "administrative"),
+    ("gov.uk/carers-allowance", "care"),
+    ("gov.uk/apply-needs-assessment-social-services", "care"),
+    ("gov.uk/attendance-allowance", "care"),
+    ("gov.uk/help-with-health-costs", "care"),
+    ("gov.uk/school-attendance-absence", "education"),
+    ("gov.uk/complain-about-school", "education"),
+    ("gov.uk/types-of-school", "education"),
+    ("gov.uk/further-education-courses", "education"),
+    ("gov.uk/data-protection", "technical"),
+    ("gov.uk/guidance/keeping-your-data-secure", "technical"),
+    ("gov.uk/government/publications/cyber-essentials", "technical"),
 )
 
 
@@ -79,6 +104,7 @@ def documents_from(
                 "id": f"ctx-{start + len(made):04d}",
                 "text": "\n\n".join(chunk),
                 "domain": domain,
+                "language": source.language,
                 "source": source.name,
                 "licence": source.licence,
                 "author": source.author,
@@ -114,7 +140,7 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             paragraphs = [
                 p
-                for p in cc.paragraphs_from(fetched.text)
+                for p in cc.paragraphs_from(fetched.text, within=source.within)
                 if cc.MIN_CHARS <= len(p) <= cc.MAX_CHARS and p not in in_corpus
             ]
             fresh = documents_from(paragraphs, fetched.url, source, len(made) + 1)
