@@ -97,3 +97,33 @@ def test_an_accepted_entry_is_appended_as_the_corpus_can_read_it(tmp_path: Path)
     reloaded = corpus.load(path)
     assert [e.id for e in reloaded] == ["nl-0001"]
     assert json.loads(path.read_text(encoding="utf-8"))["retrieved"] == "2026-09-22"
+
+
+def test_undo_removes_the_last_accepted_paragraph(tmp_path: Path) -> None:
+    """Accepting is an append, so undoing is dropping the last line."""
+    path = tmp_path / "clean_nl.jsonl"
+    path.write_text("// a comment line the corpus starts with\n", encoding="utf-8")
+    for n in (1, 2):
+        review_corpus.append(
+            corpus.CorpusEntry.model_validate(
+                {
+                    "id": f"nl-{n:04d}",
+                    "text": CLEAN,
+                    "register": "formal_u",
+                    "domain": "administrative",
+                    "origin": "authored",
+                    "source": "Niels van Beuningen",
+                    "licence": "CC-BY-4.0",
+                }
+            ),
+            path,
+        )
+
+    assert review_corpus._undo(path) == "nl-0002"
+    assert [e.id for e in corpus.load(path)] == ["nl-0001"]
+
+
+def test_the_progress_bar_fills_and_stops_at_the_floor() -> None:
+    assert review_corpus.bar(0, floor=25, width=10).count("▰") == 0
+    assert review_corpus.bar(25, floor=25, width=10).count("▰") == 10
+    assert review_corpus.bar(400, floor=25, width=10).count("▰") == 10

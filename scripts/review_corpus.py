@@ -15,7 +15,10 @@ already in the corpus, because both are ways a corpus grows a count without grow
 evidence.
 
     python3 scripts/collect_corpus.py --source cbs --limit 40 > batch.jsonl
-    python3 scripts/review_corpus.py batch.jsonl
+    make review ARGS=batch.jsonl
+
+One keystroke per decision, no Enter: `y` accept, `n` reject, `r` register, `d` domain,
+`s` skip, `u` undo the last acceptance, `q` save and quit.
 
 Accepted entries are appended to the corpus as you go, so quitting halfway loses
 nothing. Rejected ones go to `<batch>.rejected.jsonl` with the reason, which is what
@@ -36,6 +39,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from meetlat import console, zeef  # noqa: E402  (needs the sys.path line above)
+from meetlat.console import C  # noqa: E402
 from meetlat.zeef import corpus  # noqa: E402
 
 #: The floor each register has to clear before the corpus is evidence rather than a
@@ -171,15 +175,56 @@ def append(entry: corpus.CorpusEntry, path: Path) -> None:
         handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
 
 
-def _ask(prompt: str, options: list[str]) -> str:
+def key(choices: dict[str, str]) -> str:
+    """One keystroke, without waiting for Enter where the terminal allows it.
+
+    Review is hundreds of small decisions, and a decision that costs two keys costs
+    twice as much. Falls back to a typed line whenever stdin is not a terminal, which
+    is what makes the loop testable and pipeable rather than only usable by hand.
+    """
+    legend = "  ".join(
+        f"{C.bold}{k}{C.reset} {C.dim}{label}{C.reset}" for k, label in choices.items()
+    )
+    print(f"\n  {legend}")
     while True:
-        console.say()
-        for index, option in enumerate(options, start=1):
-            console.line(f"[{index}] {option}", indent=4)
-        answer = input("  > ").strip()
-        if answer.isdigit() and 1 <= int(answer) <= len(options):
-            return options[int(answer) - 1]
-        console.warn(f"pick 1 to {len(options)}")
+        pressed = (_read_key() or "").lower()
+        if pressed in choices:
+            return pressed
+        if pressed in {"\x03", "\x04"}:  # ctrl-c, ctrl-d: quitting is always available
+            return "q" if "q" in choices else next(iter(choices))
+        console.warn(f"press one of: {', '.join(choices)}")
+
+
+def _read_key() -> str:
+    if not sys.stdin.isatty():
+        return sys.stdin.readline().strip()[:1]
+    import termios
+    import tty
+
+    descriptor = sys.stdin.fileno()
+    previous = termios.tcgetattr(descriptor)
+    try:
+        tty.setraw(descriptor)
+        return sys.stdin.read(1)
+    finally:
+        termios.tcsetattr(descriptor, termios.TCSADRAIN, previous)
+
+
+def pick(label: str, options: list[str], current: str) -> str:
+    """Choose from a short list by number, showing which one is already proposed."""
+    console.say()
+    console.note(f"{label}:")
+    for index, option in enumerate(options, start=1):
+        marker = f"{C.green}●{C.reset}" if option == current else " "
+        console.line(f"{marker} {index}  {option}", indent=4)
+    keys = {str(i): options[i - 1] for i in range(1, len(options) + 1)}
+    return keys[key({k: v for k, v in keys.items()})]
+
+
+def bar(count: int, floor: int = PER_REGISTER, width: int = 12) -> str:
+    filled = min(width, round(width * count / floor)) if floor else width
+    colour = C.green if count >= floor else C.yellow
+    return f"{colour}{'▰' * filled}{C.reset}{C.dim}{'▱' * (width - filled)}{C.reset}"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -201,58 +246,97 @@ def main(argv: list[str] | None = None) -> int:
     console.note(f"corpus: {len(entries)} entries, floor {PER_REGISTER} per register")
     console.note("nothing is accepted without a keystroke: the register tag is the judgement")
 
-    accepted = rejected = 0
+    accepted: list[str] = []
+    rejected = 0
     queue = by_thinnest_register(candidates, counts)
-    for index, candidate in enumerate(queue, start=1):
-        texts = [entry.text for entry in entries]
-        seen = assess(str(candidate["text"]), texts)
-        render(candidate, seen, f"{index} of {len(queue)}", counts)
+    index = 0
+    while index < len(queue):
+        candidate = queue[index]
+        seen = assess(str(candidate["text"]), [entry.text for entry in entries])
+        render(candidate, seen, f"{index + 1} of {len(queue)}", counts)
 
         if seen.blocked:
             console.say()
             console.bad(f"cannot be accepted: {seen.blocked}")
-            choice = _ask("", ["reject and continue", "quit"])
-            if choice == "quit":
+            blocked_choice = key({"n": "reject", "s": "skip", "q": "quit"})
+            if blocked_choice == "q":
                 break
-            _reject(candidate, seen.blocked, rejects)
-            rejected += 1
+            if blocked_choice == "n":
+                _reject(candidate, seen.blocked, rejects)
+                rejected += 1
+            index += 1
             continue
 
-        choice = _ask("", ["accept", "reject", "change register", "change domain", "skip", "quit"])
-        if choice == "quit":
+        choice = key(
+            {
+                "y": "accept",
+                "n": "reject",
+                "r": "register",
+                "d": "domain",
+                "s": "skip",
+                "u": "undo last",
+                "q": "quit",
+            }
+        )
+        if choice == "q":
             break
-        if choice == "skip":
+        if choice == "s":
+            index += 1
             continue
-        if choice == "change register":
-            candidate["register"] = _ask("", REGISTERS)
-        if choice == "change domain":
-            candidate["domain"] = _ask("", DOMAINS)
-        if choice in {"change register", "change domain"}:
-            choice = _ask("", ["accept", "reject", "skip"])
-        if choice == "skip":
+        if choice == "u":
+            if not accepted:
+                console.warn("nothing to undo")
+                continue
+            removed = _undo(args.corpus)
+            entries = corpus.load(args.corpus)
+            counts = {str(k): v for k, v in corpus.coverage(entries).items()}
+            accepted.pop()
+            console.warn(f"removed {removed} from the corpus; this candidate is unchanged")
             continue
-        if choice == "reject":
-            _reject(
-                candidate,
-                _ask("", ["not natural Dutch", "wrong register", "too short", "not interesting"]),
-                rejects,
-            )
+        if choice in {"r", "d"}:
+            field, options = ("register", REGISTERS) if choice == "r" else ("domain", DOMAINS)
+            candidate[field] = pick(field, options, str(candidate[field]))
+            continue
+        if choice == "n":
+            reasons = ["not natural Dutch", "wrong register", "not interesting", "a duplicate idea"]
+            _reject(candidate, pick("why", reasons, ""), rejects)
             rejected += 1
+            index += 1
             continue
 
         entry = corpus.CorpusEntry.model_validate({**candidate, "id": next_id(entries)})
         append(entry, args.corpus)
         entries.append(entry)
         counts[entry.register] = counts.get(entry.register, 0) + 1
-        accepted += 1
-        console.ok(f"accepted as {entry.id}")
+        accepted.append(entry.id)
+        console.ok(
+            f"accepted as {entry.id}  ({entry.register} {counts[entry.register]}/{PER_REGISTER})"
+        )
+        index += 1
 
     console.say()
     console.rule()
-    console.ok(f"{accepted} accepted, {rejected} rejected")
-    console.note("corpus by register: " + "  ".join(f"{r} {counts.get(r, 0)}" for r in REGISTERS))
+    console.ok(f"{len(accepted)} accepted, {rejected} rejected, {len(queue) - index} not reached")
+    for register in REGISTERS:
+        count = counts.get(register, 0)
+        console.line(f"{bar(count)}  {register.ljust(15)}{count} of {PER_REGISTER}", indent=2)
     console.note("run `make check-zeef` to see the gate's view of what you just added")
     return 0
+
+
+def _undo(path: Path) -> str:
+    """Remove the paragraph accepted most recently and say which it was.
+
+    Accepting is an append, so undoing is dropping the last line. It earns its key:
+    tagging a register wrongly is the mistake this loop makes easiest to make and the
+    most tedious to find later, when it is one line among two hundred.
+    """
+    lines = path.read_text(encoding="utf-8").splitlines()
+    while lines and (not lines[-1].strip() or lines[-1].lstrip().startswith("//")):
+        lines.pop()
+    removed = str(json.loads(lines.pop())["id"])
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return removed
 
 
 def _reject(candidate: dict[str, Any], reason: str, path: Path) -> None:
