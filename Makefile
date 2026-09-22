@@ -24,6 +24,12 @@ install: $(VENV)  ## create .venv and install meetlat with its dev tools
 $(VENV):
 	python3 -m venv $(VENV)
 
+.PHONY: install-hooks
+install-hooks:  ## enable the git hooks in .githooks (commit-msg, pre-commit, pre-push)
+	@git config core.hooksPath .githooks
+	@python3 -c "print('  git hooks enabled: commit-msg keeps attribution out of the history, \
+pre-commit gates lint and format and the offline gates, pre-push runs the full preflight.')"
+
 .PHONY: clean
 clean:  ## remove the venv and every cache
 	rm -rf $(VENV) .pytest_cache .mypy_cache .ruff_cache **/__pycache__ *.egg-info
@@ -41,7 +47,7 @@ checks:  ## list the registered checks and the ones still designed but unbuilt
 #= Gates (all of these run in CI)
 
 .PHONY: check
-check: check-zeef check-judges check-guard  ## every offline gate at once
+check: check-zeef check-judges check-guard check-commit-msg  ## every offline gate at once
 
 .PHONY: check-zeef
 check-zeef:  ## every check has fixtures, exact spans, and no false positives (ADR-0002)
@@ -54,6 +60,10 @@ check-judges:  ## no judge reports a number its own labels do not support (ADR-0
 .PHONY: check-guard
 check-guard:  ## the gold set guard still behaves as recorded (ADR-0006)
 	@python3 scripts/check_gold_write.py --selftest
+
+.PHONY: check-commit-msg
+check-commit-msg:  ## the commit-message guard still behaves as recorded (ADR-0006)
+	@$(PY) scripts/check_commit_msg.py --selftest
 
 .PHONY: check-adrs
 check-adrs:  ## the ADR index matches the ADRs on disk

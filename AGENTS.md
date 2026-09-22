@@ -66,7 +66,9 @@ The `/calibrate-judge` skill is the protocol.
 **Prompts are generated from a taxonomy, not maintained** (ADR-0005). Not built yet.
 
 **Enforcement is a `scripts/check_*.py` with three callers** (ADR-0006): a `make` target, a CI job,
-and where instant feedback earns it, a hook. The hook is a caller, never the logic.
+and where instant feedback earns it, a hook. The hook is a caller, never the logic. Two kinds of
+hook call the same scripts: `.githooks/` for a person using git, `.claude/hooks/` for an agent
+using a tool.
 
 **User-facing output goes through `meetlat.console`.** One palette, one set of glyphs, one voice,
 and no escape sequence ever written into a pipe or a log. Do not hand-roll colour, and do not print
@@ -87,6 +89,7 @@ what the line plainly does, never a narration of the edit.
 
 ```bash
 make install        # .venv plus the package and its dev tools
+make install-hooks  # enable .githooks: commit-msg, pre-commit, pre-push
 make help           # every target, generated from the Makefile itself
 
 make zeef ARGS=response.txt   # run layer 1 over a file

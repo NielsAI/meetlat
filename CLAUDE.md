@@ -21,6 +21,10 @@ imported below so the two never drift.
   naming the gate an edit just put out of date, and a `SessionStart` line with the branch, the
   dirty tree, and how much is actually calibrated. All fail open on unreadable input and none
   mutates a file.
+- **Git hooks** are a separate mechanism in `.githooks/`, for a person using git rather than an
+  agent using a tool, enabled with `make install-hooks`. Notably `commit-msg` rejects an assistant
+  attribution trailer, which is the enforcement behind the rule that a commit records what changed
+  and why rather than who typed it. Do not add one and then reach for `--no-verify`.
 - **Preflight**: `make preflight` runs the full CI battery locally. Use it to self-verify green
   instead of pushing and waiting.
 

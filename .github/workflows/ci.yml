@@ -64,6 +64,8 @@ jobs:
         run: python scripts/generate_adr_index.py --check
       - name: Gold set guard behaves as recorded (ADR-0006)
         run: python scripts/check_gold_write.py --selftest
+      - name: Commit-message guard behaves as recorded (ADR-0006)
+        run: python scripts/check_commit_msg.py --selftest
 
   gitleaks:
     runs-on: ubuntu-latest

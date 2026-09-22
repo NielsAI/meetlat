@@ -123,9 +123,10 @@ numbers are not measurements. Build order and progress: [`AGENTS.md`](AGENTS.md)
 ## Contributing
 
 ```bash
-make install      # .venv plus dev tools
-make preflight    # everything CI runs
-make help         # every target
+make install        # .venv plus dev tools
+make install-hooks  # pre-commit gates lint and the offline gates; pre-push runs preflight
+make preflight      # everything CI runs
+make help           # every target
 ```
 
 Read [`CONTEXT.md`](CONTEXT.md) for the vocabulary and [`AGENTS.md`](AGENTS.md) for the rules that
