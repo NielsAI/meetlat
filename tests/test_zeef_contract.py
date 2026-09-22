@@ -62,5 +62,5 @@ def test_a_vendored_resource_is_audited_whatever_its_extension(tmp_path: Path) -
     check_zeef_contract._audit_resource_licences(tmp_path, findings)
 
     assert [f.what for f in findings] == [
-        "vendored but 'opentaal-wordlist' does not appear in NOTICE"
+        "vendored but 'opentaal-wordlist.txt.gz' does not appear in NOTICE"
     ]

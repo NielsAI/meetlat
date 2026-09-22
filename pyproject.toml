@@ -10,7 +10,7 @@ readme = "README.md"
 # Code is Apache-2.0; the data in gold/, tests/corpora/ and the authored wordlists is
 # CC BY 4.0 (LICENSE-DATA), and vendored lists keep their own licence (NOTICE).
 license = "Apache-2.0"
-license-files = ["LICENSE", "LICENSE-DATA", "NOTICE"]
+license-files = ["LICENSE", "LICENSE-DATA", "NOTICE", "licenses/*"]
 requires-python = ">=3.11"
 authors = [{ name = "Niels van Beuningen" }]
 keywords = ["evaluation", "dutch", "nederlands", "llm", "benchmark", "calibration"]

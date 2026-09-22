@@ -31,15 +31,23 @@ Every vendored word or phrase list is recorded here with the licence it arrives
 under, and `scripts/check_zeef_contract.py` fails the build if one is not. Adding a
 list means adding its entry, not remembering to.
 
-(none vendored yet)
-
-Planned:
-
   OpenTaal Dutch word list
+  File:       src/meetlat/resources/opentaal-wordlist.txt.gz
   Used under: BSD 3-Clause
+  Copyright:  (c) 2020 OpenTaal (Simon Brouwer, Sander van Geloven)
+              (c) 2006 - 2011 OpenTaal (Ruud Baars, Simon Brouwer)
+              (c) 2001 - 2005 Simon Brouwer and others
+              (c) 1996 Nederlandstalige TeX Gebruikersgroep
   Source:     https://github.com/OpenTaal/opentaal-wordlist
+  Full text:  licenses/opentaal-LICENSE.txt, a verbatim copy of the upstream
+              LICENSE.txt, kept because BSD 3-Clause requires redistributions
+              to retain the copyright notice, the conditions and the
+              disclaimer, and because OpenTaal asks that a copy travel with
+              every copy of the file.
   Note:       OpenTaal offers this list under BSD 3-Clause OR CC BY 3.0. This
               project takes the BSD 3-Clause arm, which sits cleanly beside
               Apache 2.0 code. The CC BY 3.0 arm is deliberately not taken.
-              Required by the `spelling` check (ADR-0002), which is why that
-              check is designed and not yet built.
+              The 413,937 words are verbatim upstream; the five comment lines
+              at the top of the compressed file were added here so the licence
+              gate can read the SPDX and Origin headers without unpacking a
+              directory. Used by the `spelling` check (ADR-0008).

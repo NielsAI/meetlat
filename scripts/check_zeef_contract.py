@@ -94,13 +94,14 @@ def _audit_resource_licences(repo_root: Path, out: list[Finding]) -> None:
             continue
         where = f"src/meetlat/resources/{path.name}"
         header = _resource_header(path)
-        name = path.name.split(".")[0]
         if "SPDX-License-Identifier:" not in header:
             out.append(Finding(where, "no `# SPDX-License-Identifier:` in the first lines"))
         if "Origin:" not in header:
             out.append(Finding(where, "no `# Origin:` saying whether this list was vendored"))
-        elif "Origin: vendored" in header and name not in notice:
-            out.append(Finding(where, f"vendored but {name!r} does not appear in NOTICE"))
+        # The file's own name, not a stem: an upstream project URL contains the stem, so
+        # a NOTICE that only links the project would satisfy a looser check by accident.
+        elif "Origin: vendored" in header and path.name not in notice:
+            out.append(Finding(where, f"vendored but {path.name!r} does not appear in NOTICE"))
 
 
 def _resource_header(path: Path) -> str:
