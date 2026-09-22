@@ -66,12 +66,12 @@ echo "Beste klant, u kunt uw bestelling annuleren. Laten we erin duiken, dan wee
   ✔ self_repetition
   ◦ sentence_length         sentences 2  words 20  mean 10  median 10  p90 13  max 13
   ◦ anglicism_density       words 20  anglicisms 0  distinct 0  per_1000 0
+  ◦ spelling                words 20  out_of_vocabulary 0  distinct 0  per_1000 0
 
-  ✘ zeef failed · 2 of 6 checks · 5 findings
+  ✘ zeef failed · 2 of 7 checks · 5 findings
 ```
 
-`meetlat zeef --json` for the machine-readable form, and `meetlat checks` for what is registered
-and what is designed but not yet built. The command exits non-zero when a verdict check fires, so
+`meetlat zeef --json` for the machine-readable form, and `meetlat checks` for what is registered. The command exits non-zero when a verdict check fires, so
 it composes into a pipeline.
 
 ## What layer 1 checks
@@ -87,13 +87,14 @@ discouraging.
 | `self_repetition` | verdict | An eight-word sequence repeated verbatim |
 | `sentence_length` | distribution | Style drift between checkpoints. Reports numbers, never a verdict |
 | `anglicism_density` | distribution | English where an ordinary Dutch word exists, as a rate per 1000 words |
+| `spelling` | distribution | Words outside the OpenTaal list, compounds decomposed first, as a rate per 1000 |
 
 Two design rules make this layer worth running. **A check either has no false positives or it
 reports a distribution rather than a verdict**, because a checker that cries wolf gets switched
 off. And **coverage never wins over certainty**: `de`/`het` agreement, clause word order and
 invented compounds are deliberately excluded, and `spelling` reports a rate rather than a verdict
-for the same reason (ADR-0008). It is the one check still unbuilt, because it needs a vendored
-wordlist first. `meetlat checks` shows the gaps.
+for the same reason (ADR-0008). All seven designed checks are built; `meetlat checks` shows what
+is registered.
 
 CI enforces it: every verdict check runs over a corpus of natural Dutch written by a person, and a
 single firing there fails the build.
@@ -156,7 +157,7 @@ gives the code an explicit patent grant and a NOTICE mechanism for third-party
 attribution; CC BY keeps a name attached to the part that cost human hours.
 
 Vendored wordlists keep their own licence and are recorded in [NOTICE](NOTICE). The
-OpenTaal list that the `spelling` check will need is dual-licensed BSD-3-Clause or
+OpenTaal list the `spelling` check uses is dual-licensed BSD-3-Clause or
 CC BY 3.0, and this project takes the BSD arm, which sits cleanly beside Apache 2.0
 code. `make check-zeef` fails if a vendored list is not named in NOTICE, so attribution
 is enforced rather than remembered.

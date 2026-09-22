@@ -25,7 +25,7 @@ they are this project's own vocabulary; everything else in the code is English (
 
 | Layer | Package | What it is | Cost per item | State |
 | --- | --- | --- | --- | --- |
-| 1 | `meetlat.zeef` | Deterministic checks, no model call | zero | **built**, 6 checks |
+| 1 | `meetlat.zeef` | Deterministic checks, no model call | zero | **built**, 7 checks |
 | 2 | `meetlat.keuring` | Calibrated binary judges, one criterion each | one model call per criterion | card + gate built, runner not |
 | 3 | `meetlat.ijk` | Hand labels that certify a layer-2 judge | human minutes | maths + gate built, no sets yet |
 
@@ -113,7 +113,7 @@ Bottom up, because each layer is useful before the next exists (ADR-0001).
 
 | Step | Output | Done |
 | --- | --- | --- |
-| 1 | Layer 1 as a package: checks, wordlists, fixtures, contract gate | ◐ 6 of 7 checks, and the corpus is 28 entries against an exit condition of 200 paragraphs, 17 of them below the 80-character floor for what counts as one |
+| 1 | Layer 1 as a package: checks, wordlists, fixtures, contract gate | ◐ all 7 checks built, but the corpus is 28 entries against an exit condition of 200 paragraphs, 17 of them below the 80-character floor for what counts as one |
 | 2 | Taxonomy plus prompt generator | ✘ ADR-0005 records the decision; no code |
 | 3 | A hand-labelled set for one criterion, two annotators | ✘ schema and guard exist, no labels |
 | 4 | First calibrated judge plus the written protocol | ◐ protocol and gate exist, no judge |
