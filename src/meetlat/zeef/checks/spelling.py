@@ -20,17 +20,17 @@ at 5, *taalmodelbeoordeling* stops decomposing on `taal`. Genuine misspellings
 (`onstaan` for `ontstaan`, `teh` for `the`) do not decompose under these rules and
 are counted, which is what the metric is for.
 
-**What normal looks like**: 0.00 per 1000 over the 28-paragraph clean corpus (360
-words, zero out-of-vocabulary tokens), across all four registers. `words` counts only
-tokens carrying a letter, which is why it is 360 here where `anglicism_density`
-counts 366: the six numerals in the corpus are not words a word list can adjudicate.
+**What normal looks like**: 15.11 per 1000 over the 196-paragraph clean corpus (5,295
+words, 80 out-of-vocabulary tokens, 38 distinct). `words` counts only tokens carrying a
+letter, because a word list cannot adjudicate a numeral and whether it holds one is an
+accident: `010` is in it and `24` is not.
 
-Zero on known-correct Dutch is what makes the number readable, but do not expect it
-from generated text. Proper nouns are the reason: people, places, companies and
-product names are out of vocabulary by construction and no list will hold them, so a
-real response's rate moves with its prompt's domain more than with its spelling
-(ADR-0008). This is comparative between checkpoints over a regenerated prompt set,
-and it is not a measure of how many words are wrong.
+That figure was 0.00 while the corpus was 28 paragraphs a person wrote by hand, and it
+rose the moment the corpus was collected from the world instead. What rose it is exactly
+what ADR-0008 said would: `ANBI`, `Teletolk`, `multichannelers`, `Tamazight`,
+`stop-motion`, `Eustatius`. Names, jargon and hyphenated coinages, not misspellings. Read
+a checkpoint's rate against this, expect its prompt's domain to move it more than its
+spelling does, and do not read it as a count of words that are wrong.
 """
 
 from __future__ import annotations
