@@ -35,7 +35,8 @@ contract is what makes it mechanical: `make check-zeef` tells you when you are d
    (ADR-0007). Natural text a person wrote, never text constructed to pass and **never
    model-generated**: the corpus exists to prove the checks do not fire on human Dutch, and filling
    it with model output makes the gate circular. `scripts/collect_corpus.py` fetches candidates
-   from the declared CC0 sources with their provenance already filled in.
+   from the declared sources with their provenance already filled in, including `edurep`, which
+   is where the informal registers come from.
 7. **Run `make check-zeef`, then `make preflight`.** Iterate until both are green.
 
 ## Not negotiable
