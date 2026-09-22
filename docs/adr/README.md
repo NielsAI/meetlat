@@ -8,18 +8,19 @@ is true *now* lives in `AGENTS.md` and in the gates each ADR names below.
 | # | Decision | Status | Date | Landed in |
 | --- | --- | --- | --- | --- |
 | [0001](0001-three-layers-each-certified-by-the-one-below.md) | Three layers, each certified by the one below | accepted | 2026-09-22 | `AGENTS.md` |
-| [0002](0002-a-check-is-a-verdict-or-a-distribution.md) | A check is a verdict or a distribution, and it always names its span | accepted | 2026-09-22 | `AGENTS.md`, `scripts/check_zeef_contract.py`, `tests/corpora/clean_nl.txt` |
+| [0002](0002-a-check-is-a-verdict-or-a-distribution.md) | A check is a verdict or a distribution, and it always names its span | accepted | 2026-09-22 | `AGENTS.md`, `scripts/check_zeef_contract.py`, `tests/corpora/clean_nl.jsonl` |
 | [0003](0003-one-binary-judge-per-criterion.md) | One binary judge per criterion, versioned as an artifact | accepted | 2026-09-22 | `AGENTS.md`, `scripts/check_judges.py`, `src/meetlat/keuring/card.py` |
 | [0004](0004-the-calibration-gate.md) | A judge below threshold does not report numbers | accepted | 2026-09-22 | `AGENTS.md`, `.claude/skills/calibrate-judge/SKILL.md`, `scripts/check_judges.py`, `src/meetlat/ijk/gold.py` |
 | [0005](0005-prompts-are-generated-not-maintained.md) | Prompts are generated from a taxonomy, not maintained as a set | accepted | 2026-09-22 | `AGENTS.md` |
 | [0006](0006-enforcement-lives-in-scripts.md) | A rule worth having is a script with three callers | accepted | 2026-09-22 | `AGENTS.md`, `.claude/hooks/README.md`, `Makefile`, `.github/workflows/ci.yml` |
+| [0007](0007-the-corpus-carries-provenance-and-register.md) | The clean corpus carries provenance and a register, per paragraph | accepted | 2026-09-22 | `AGENTS.md`, `scripts/check_zeef_contract.py`, `src/meetlat/zeef/corpus.py` |
 
 ## By area
 
 - **agents**: [ADR-0006](0006-enforcement-lives-in-scripts.md)
 - **architecture**: [ADR-0001](0001-three-layers-each-certified-by-the-one-below.md)
 - **ijk**: [ADR-0004](0004-the-calibration-gate.md)
-- **infra**: [ADR-0006](0006-enforcement-lives-in-scripts.md)
+- **infra**: [ADR-0006](0006-enforcement-lives-in-scripts.md), [ADR-0007](0007-the-corpus-carries-provenance-and-register.md)
 - **keuring**: [ADR-0003](0003-one-binary-judge-per-criterion.md)
 - **taxonomy**: [ADR-0005](0005-prompts-are-generated-not-maintained.md)
-- **zeef**: [ADR-0002](0002-a-check-is-a-verdict-or-a-distribution.md)
+- **zeef**: [ADR-0002](0002-a-check-is-a-verdict-or-a-distribution.md), [ADR-0007](0007-the-corpus-carries-provenance-and-register.md)

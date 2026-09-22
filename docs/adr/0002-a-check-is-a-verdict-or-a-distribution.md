@@ -5,7 +5,7 @@ date: 2026-09-22
 supersedes: []
 amends: []
 rule: [AGENTS.md]
-enforced_by: [scripts/check_zeef_contract.py, tests/corpora/clean_nl.txt]
+enforced_by: [scripts/check_zeef_contract.py, tests/corpora/clean_nl.jsonl]
 ---
 
 # ADR 0002: A check is a verdict or a distribution, and it always names its span
@@ -54,7 +54,7 @@ reports every marker it can find, bare `je` included.
 
 `scripts/check_zeef_contract.py` enforces all of it: a registered check with no fixture fails the
 build, a fixture asserts the exact text of every span, and every verdict check runs over
-`tests/corpora/clean_nl.txt`, natural Dutch written by a person, where a single firing is a false
+`tests/corpora/clean_nl.jsonl`, natural Dutch written by a person, where a single firing is a false
 positive and a build failure.
 
 The cost is coverage. `anglicism_density` and `spelling` are designed and not built, because both
