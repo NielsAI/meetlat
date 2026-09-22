@@ -111,3 +111,12 @@ def test_an_attribution_licence_needs_someone_to_attribute() -> None:
 def test_cc0_text_needs_no_author_because_attribution_is_waived() -> None:
     collected = {**VALID, "origin": "collected", "licence": "CC0-1.0"}
     assert corpus.CorpusEntry.model_validate(collected).author == ""
+
+
+def test_collected_text_is_verbatim_unless_it_says_otherwise() -> None:
+    """`collected` reads as `quoted`, so an entry edited afterwards has to admit it."""
+    collected = {**VALID, "origin": "collected", "licence": "CC0-1.0"}
+    assert corpus.CorpusEntry.model_validate(collected).redacted == ""
+
+    edited = corpus.CorpusEntry.model_validate({**collected, "redacted": "names replaced"})
+    assert corpus.shape([edited])["redacted"] == 1

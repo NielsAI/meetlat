@@ -39,8 +39,12 @@ class Meaning:
     are both unaddressed prose and the boundary between them is not obvious from two
     words, but nobody mistakes a board's decision for a train's departure time.
 
-    Where those two are hard to separate, the question is who the text assumes as its
-    reader rather than how it is phrased. A passive institutional voice reads as
+    The two addressed registers are about formality, not about the pronoun: "Hierbij
+    bevestigen wij de afspraak" is `formal_u` with no `u` in it. The pronoun is the usual
+    sign, not the definition.
+
+    Where the unaddressed two are hard to separate, the question is who the text assumes
+    as its reader rather than how it is phrased. A passive institutional voice reads as
     business and often is not: "het nieuwe paspoort wordt vandaag in gebruik genomen"
     is written for anybody who owns a passport, in words anybody owns.
     """
@@ -54,11 +58,11 @@ class Meaning:
 #: the third, and 200 paragraphs tagged by a drifting rule are not one corpus.
 REGISTER_MEANS: dict[str, Meaning] = {
     "informal_je": Meaning(
-        "addresses the reader as je, jij or jouw",
+        "informal register, usually addressing the reader as je, jij or jouw",
         "Je kunt je bestelling tot 24 uur na plaatsing kosteloos annuleren via je account.",
     ),
     "formal_u": Meaning(
-        "addresses the reader as u or uw",
+        "formal register, usually addressing the reader as u or uw",
         "U kunt bezwaar maken tegen dit besluit binnen zes weken na de verzenddatum.",
     ),
     "business": Meaning(
@@ -149,6 +153,11 @@ with warnings.catch_warnings():
         #: retaining identification of the creator rather than of the finder.
         author: str = ""
         licence: str = Field(min_length=1)
+        #: What was changed and why, for text that is not verbatim at its `url`. Empty
+        #: is the normal case and the one a reader should be able to assume, so anything
+        #: edited after collection says so here rather than quietly differing from the
+        #: page it cites.
+        redacted: str = ""
         #: Resolvable by a reader who wants to check the quote. Required for collected
         #: text; an authored paragraph has nowhere to point.
         url: str = ""
@@ -233,4 +242,6 @@ def shape(entries: list[CorpusEntry]) -> dict[str, int]:
     return {
         "words": sum(len(entry.text.split()) for entry in entries),
         "below_floor": sum(1 for entry in entries if len(entry.text) < MIN_CHARS),
+        # Printed because "collected" reads as "verbatim", and for these it is not.
+        "redacted": sum(1 for entry in entries if entry.redacted),
     }

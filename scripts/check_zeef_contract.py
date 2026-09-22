@@ -263,7 +263,8 @@ def main(argv: list[str] | None = None) -> int:
         measured = corpus.shape(entries)
         console.note(
             f"corpus shape: {measured['words']} words, {measured['below_floor']} of "
-            f"{len(entries)} below the {corpus.MIN_CHARS}-character paragraph floor"
+            f"{len(entries)} below the {corpus.MIN_CHARS}-character paragraph floor, "
+            f"{measured['redacted']} edited after collection"
         )
         # A verdict check no paragraph can reach passes this gate without being tested,
         # which reads exactly like passing it. So the reach is printed, not inferred.

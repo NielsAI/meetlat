@@ -270,9 +270,10 @@ def fetch(url: str, *, timeout: int = 20) -> Fetched:
         return Fetched(response.read().decode(charset, errors="replace"), response.url)
 
 
-#: A teaser ends where its link begins. News index pages are full of them, they are the
-#: right length and they read as prose, and half a sentence is not a paragraph of Dutch.
-_TRUNCATED = ("...", "…")
+#: A teaser ends where its link begins, and a lead-in ends where its list begins. News
+#: index pages are full of the first and instructions of the second; both are the right
+#: length, both read as prose, and neither is a whole paragraph of Dutch.
+_TRUNCATED = ("...", "…", ":")
 
 
 def paragraphs_from(html: str, *, within: str = "") -> list[str]:
