@@ -36,12 +36,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, get_args
 
+from pydantic import ValidationError
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from meetlat import console, zeef  # noqa: E402  (needs the sys.path line above)
 from meetlat.console import C  # noqa: E402
 from meetlat.zeef import corpus  # noqa: E402
+from meetlat.zeef.checks import register_consistency  # noqa: E402
 
 #: The floor each register has to clear, from the corpus module so the reviewer and
 #: the gate cannot disagree about it. Printed per candidate while reviewing.
@@ -49,6 +52,17 @@ PER_REGISTER = corpus.PER_REGISTER
 
 REGISTERS = list(get_args(corpus.Register))
 DOMAINS = list(get_args(corpus.Domain))
+
+#: What the collector writes where a person has to decide. It emits this rather than a
+#: guess on purpose: the register is the judgement that makes the corpus evidence, and
+#: a plausible guess sitting in the field is one a reviewer accepts without reading
+#: (ADR-0007). So the reviewer has to treat it as a value that can reach every screen.
+UNSET = "TODO"
+
+#: The fields that cannot be left at `UNSET`, in the order the reviewer is asked for
+#: them. Both are `Literal` types, so an unset one is a validation error at the moment
+#: of accepting, which is far too late to be useful.
+MUST_CHOOSE = ("register", "domain")
 
 
 def corpus_path(repo_root: Path = REPO_ROOT) -> Path:
@@ -122,13 +136,17 @@ def by_thinnest_register(
 def render(
     candidate: dict[str, Any], seen: Assessment, position: str, counts: dict[str, int]
 ) -> None:
-    proposed = str(candidate.get("register", "TODO"))
+    proposed = str(candidate.get("register", UNSET))
     console.rule()
     console.banner("meetlat · review", position)
     console.say()
+    # Highlighted after wrapping, never before: the escape codes have no width, and
+    # measuring a line that contains them wraps the paragraph at the wrong column.
     for line in _wrapped(str(candidate["text"])):
-        console.line(line, indent=2)
+        console.line(_highlight(line), indent=2)
     console.say()
+    if legend := _register_legend(str(candidate["text"])):
+        console.stat(legend)
 
     if seen.findings:
         console.bad(f"a verdict check fires: {', '.join(seen.findings)}")
@@ -156,15 +174,105 @@ def render(
     console.line(f"{C.bold}proposed{C.reset}", indent=2)
     for label, value, meanings in (
         ("register", proposed, corpus.REGISTER_MEANS),
-        ("domain", str(candidate.get("domain")), corpus.DOMAIN_MEANS),
+        ("domain", str(candidate.get("domain", UNSET)), corpus.DOMAIN_MEANS),
     ):
         meaning = meanings.get(value)
-        console.line(
-            f"{C.dim}{label.ljust(8)}{C.reset} {C.bold}{C.cyan}{value.ljust(15)}{C.reset}"
-            f"  {C.dim}{meaning.means if meaning else ''}{C.reset}",
-            indent=4,
+        # An unset tag is yellow and says so. It used to render as a cyan value like
+        # any other, which reads as a proposal rather than as the thing still to do.
+        shown = (
+            f"{C.yellow}{'not chosen'.ljust(15)}{C.reset}{C.dim}press {label[0]} to choose one"
+            f"{C.reset}"
+            if value == UNSET
+            else f"{C.bold}{C.cyan}{value.ljust(15)}{C.reset}"
+            f"  {C.dim}{meaning.means if meaning else ''}{C.reset}"
         )
+        console.line(f"{C.dim}{label.ljust(8)}{C.reset} {shown}", indent=4)
     console.line(_progress(counts.get(proposed, 0), proposed), indent=4)
+
+
+#: How each family of register marker is painted in the paragraph and in the legend.
+#: Not green, red or yellow: those mean pass, fail and caveat everywhere else here, and
+#: a marker is evidence rather than a verdict on the paragraph. Bare `je` gets bold
+#: without colour because it is the one that settles nothing, and looking like the other
+#: two would suggest it does.
+_MARKER_STYLE: dict[str, str] = {
+    "formal": C.magenta + C.bold,
+    "informal": C.blue + C.bold,
+    "impersonal": C.bold,
+}
+
+#: What each family is called on screen, in the reviewer's terms rather than the check's.
+_MARKER_LABEL: dict[str, str] = {
+    "formal": "formal u/uw",
+    "informal": "informal jij/jouw",
+    "impersonal": "bare je, may be impersonal",
+}
+
+
+def _highlight(line: str) -> str:
+    """Paint every register marker in one already-wrapped line.
+
+    Deciding between `formal_u` and `informal_je` means finding two-letter words in a
+    wall of grey text, which is the slowest part of a review and the easiest to get
+    wrong: a single `u` halfway through a long paragraph decides the tag.
+
+    Applied per line rather than to the paragraph because the markers are word-bounded,
+    so wrapping cannot split one, and rebuilt right to left so each replacement cannot
+    move the offsets of the ones not yet applied.
+    """
+    painted = line
+    for marker in reversed(register_consistency.markers(line)):
+        style = _MARKER_STYLE[marker.kind]
+        painted = painted[: marker.start] + style + marker.text + C.reset + painted[marker.end :]
+    return painted
+
+
+def _register_legend(text: str) -> str:
+    """What was highlighted and how often, so the counts survive a terminal without colour."""
+    counted = Counter(marker.kind for marker in register_consistency.markers(text))
+    if not counted:
+        return "no register markers: nothing addresses the reader, so this is business or plain"
+    return "   ".join(
+        f"{_MARKER_STYLE[kind]}{_MARKER_LABEL[kind]}{C.reset}{C.dim} {counted[kind]}"
+        for kind in ("formal", "informal", "impersonal")
+        if counted[kind]
+    )
+
+
+def _choose_missing(candidate: dict[str, Any]) -> bool:
+    """Ask for every tag still at `UNSET`. False if any is still unset afterwards.
+
+    Pressing accept with nothing chosen used to reach pydantic and end the session in a
+    traceback, losing the queue position along with it. Asking is better than refusing:
+    at the moment accept is pressed the reviewer has read the paragraph and knows the
+    answer, so the question is one keystroke rather than an error to recover from.
+    """
+    for tag in MUST_CHOOSE:
+        if str(candidate.get(tag, UNSET)) != UNSET:
+            continue
+        options, meanings = (
+            (REGISTERS, corpus.REGISTER_MEANS)
+            if tag == "register"
+            else (DOMAINS, corpus.DOMAIN_MEANS)
+        )
+        console.warn(f"no {tag} chosen yet, and a paragraph cannot enter the corpus without one")
+        try:
+            chosen = pick(tag, options, "", meanings)
+        except Stopped:
+            return False
+        if not chosen:  # backed out of the menu with `b`
+            console.note(f"still no {tag}, so this candidate was not accepted")
+            return False
+        candidate[tag] = chosen
+    return True
+
+
+def _why_invalid(exc: ValidationError) -> str:
+    """A pydantic error as one line a reviewer can act on, not a stack trace."""
+    return "; ".join(
+        f"{'.'.join(str(part) for part in error['loc']) or 'entry'}: {error['msg']}"
+        for error in exc.errors()
+    )
 
 
 def _progress(count: int, register: str) -> str:
@@ -174,6 +282,11 @@ def _progress(count: int, register: str) -> str:
     it was the least visible thing on the screen: `formal_u: 36 of 25` in the same grey
     as everything around it.
     """
+    # With no register chosen there is no floor to be measured against, and the bar
+    # used to read `0/25  25 more for TODO`, which is a progress report on a tag that
+    # does not exist.
+    if register == UNSET:
+        return f"{C.yellow}no register chosen, so there is nothing to count this toward{C.reset}"
     if count >= PER_REGISTER:
         standing = f"{C.green}✔ {register} has its {PER_REGISTER}{C.reset}"
         hint = f"{C.dim}, spend the time on a thinner register{C.reset}"
@@ -329,6 +442,31 @@ def waiting(root: Path = REPO_ROOT) -> list[Path]:
     )
 
 
+def decided(batch: Path, entries: list[corpus.CorpusEntry]) -> set[str]:
+    """Candidate texts already accepted into the corpus or written to the reject log.
+
+    Neither record lives in the batch file, which the collector owns and this tool never
+    rewrites. Accepting appends to the corpus and rejecting appends to
+    `<batch>.rejected.jsonl`, so both survive quitting, and reading them back is what
+    makes a batch resumable: without it a session reopened after sixty decisions starts
+    again at the first one.
+
+    Skipping is deliberately not in here. `s` means "not now", so a skipped candidate
+    comes back, which is the difference between it and rejecting.
+    """
+    done = {entry.text for entry in entries}
+    rejects = batch.with_suffix(".rejected.jsonl")
+    if rejects.exists():
+        done |= {str(row.get("text", "")) for row in read_candidates(rejects)}
+    return done
+
+
+def remaining(batch: Path, entries: list[corpus.CorpusEntry]) -> list[dict[str, Any]]:
+    """The candidates in `batch` that have not been accepted or rejected yet."""
+    done = decided(batch, entries)
+    return [row for row in read_candidates(batch) if str(row.get("text", "")) not in done]
+
+
 def shown(path: Path) -> str:
     """The path as a person would type it back: relative to the repository root."""
     try:
@@ -337,17 +475,33 @@ def shown(path: Path) -> str:
         return path.as_posix()
 
 
-def describe(path: Path) -> str:
-    """One line about a batch: how much work it is, and which registers it would fill."""
+def describe(path: Path, entries: list[corpus.CorpusEntry] | None = None) -> str:
+    """One line about a batch: how much is left, and which registers it would fill.
+
+    Left, not held. Listing the full size of a batch two thirds reviewed is how this
+    tool used to report no progress at all for an hour of work.
+    """
     try:
         rows = read_candidates(path)
     except Exception as exc:
         return f"unreadable: {exc}"
-    tally = Counter(str(row.get("register", "untagged")) for row in rows)
-    return f"{len(rows):3d} candidates · " + ", ".join(f"{n} {r}" for r, n in tally.most_common())
+    left = rows if entries is None else remaining(path, entries)
+    tally = Counter(str(row.get("register", "untagged")) for row in left)
+    head = (
+        f"{len(left):3d} left of {len(rows)}"
+        if len(left) != len(rows)
+        else f"{len(rows):3d} candidates"
+    )
+    if not left:
+        return f"{head} · all reviewed"
+    return f"{head} · " + ", ".join(f"{n} {r}" for r, n in tally.most_common())
 
 
-def guide(batches: list[Path], detail: str = "no batch given") -> None:
+def guide(
+    batches: list[Path],
+    detail: str = "no batch given",
+    entries: list[corpus.CorpusEntry] | None = None,
+) -> None:
     """What to do, when the tool was run without a batch it can read."""
     console.banner("meetlat · review", detail)
     console.say()
@@ -358,8 +512,14 @@ def guide(batches: list[Path], detail: str = "no batch given") -> None:
     if batches:
         console.heading("Waiting to be reviewed")
         for path in batches:
-            console.ok(shown(path))
-            console.line(describe(path), indent=4)
+            left = describe(path, entries)
+            # A finished batch stays listed, dimmed rather than dropped, so a person can
+            # see that reviewing it is what closed it rather than wondering where it went.
+            if left.endswith("all reviewed"):
+                console.skip(shown(path), left)
+            else:
+                console.ok(shown(path))
+                console.line(left, indent=4)
         console.say()
         console.note("make review ARGS=<one of the paths above>")
     else:
@@ -383,10 +543,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     batches = waiting()
+    # Loaded before the listing because what is left in a batch is the corpus subtracted
+    # from it, and the listing is the first thing that has to be able to say so.
+    entries = corpus.load(args.corpus)
     if args.batch is None:
         # Not an error: forgetting the argument is the likeliest way to arrive here, and
         # an argparse usage line answers a question nobody asked.
-        guide(batches)
+        guide(batches, entries=entries)
         if not batches or not sys.stdin.isatty():
             return 0
         console.say()
@@ -394,18 +557,32 @@ def main(argv: list[str] | None = None) -> int:
         args.batch = REPO_ROOT / chosen
 
     if not args.batch.exists():
-        guide(batches, f"no such batch: {shown(args.batch)}")
+        guide(batches, f"no such batch: {shown(args.batch)}", entries=entries)
         return 1
 
-    candidates = read_candidates(args.batch)
-    if not candidates:
+    collected = read_candidates(args.batch)
+    if not collected:
         console.warn(f"{args.batch} holds no candidates; collect some first")
         return 0
-    entries = corpus.load(args.corpus)
+    # Already accepted or already rejected, so not asked about again. This is the whole
+    # of resuming: quitting at candidate 60 and reopening starts at 61.
+    candidates = remaining(args.batch, entries)
+    if not candidates:
+        console.ok(f"{shown(args.batch)} is fully reviewed · {len(collected)} candidates")
+        console.note("nothing left to decide here; `make review` lists the batches that are")
+        return 0
     counts: dict[str, int] = {str(k): v for k, v in corpus.coverage(entries).items()}
     rejects = args.batch.with_suffix(".rejected.jsonl")
 
-    console.banner("meetlat · review", f"{len(candidates)} candidate(s)")
+    settled = len(collected) - len(candidates)
+    position = (
+        f"{len(candidates)} left of {len(collected)}"
+        if settled
+        else f"{len(candidates)} candidate(s)"
+    )
+    console.banner("meetlat · review", position)
+    if settled:
+        console.note(f"{settled} already decided in an earlier session, and not asked about again")
     console.note(f"corpus: {len(entries)} entries, floor {PER_REGISTER} per register")
     console.note("nothing is accepted without a keystroke: the register tag is the judgement")
 
@@ -487,7 +664,18 @@ def main(argv: list[str] | None = None) -> int:
             index += 1
             continue
 
-        entry = corpus.CorpusEntry.model_validate({**candidate, "id": next_id(entries)})
+        # Accepting is the only path that writes, so every reason a candidate cannot be
+        # written is resolved here rather than raised from pydantic. An unset tag is the
+        # ordinary case and gets asked for; anything else is a candidate this batch
+        # should not have contained, and it is reported rather than thrown.
+        if not _choose_missing(candidate):
+            continue
+        try:
+            entry = corpus.CorpusEntry.model_validate({**candidate, "id": next_id(entries)})
+        except ValidationError as exc:
+            console.bad(f"cannot accept this candidate: {_why_invalid(exc)}")
+            console.note("`n` rejects it with a reason, `s` leaves it for later")
+            continue
         append(entry, args.corpus)
         entries.append(entry)
         counts[entry.register] = counts.get(entry.register, 0) + 1

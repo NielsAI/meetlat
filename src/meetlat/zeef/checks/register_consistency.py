@@ -17,7 +17,7 @@ wants all of it located.
 from __future__ import annotations
 
 import re
-from typing import Final
+from typing import Final, Literal, NamedTuple
 
 from meetlat.types import CheckKind, CheckResult, Finding, Span
 
@@ -41,6 +41,40 @@ def _word_pattern(words: tuple[str, ...]) -> re.Pattern[str]:
 _UNAMBIGUOUS = _word_pattern(UNAMBIGUOUS_INFORMAL)
 _ALL_INFORMAL = _word_pattern(UNAMBIGUOUS_INFORMAL + AMBIGUOUS_INFORMAL)
 _FORMAL = _word_pattern(FORMAL)
+
+
+#: Which family a marker belongs to. `impersonal` is bare `je`, kept apart from the
+#: rest because its impersonal reading is the entire reason this check is narrow: it
+#: is the one marker whose presence settles nothing.
+MarkerKind = Literal["formal", "informal", "impersonal"]
+
+
+class Marker(NamedTuple):
+    """One register marker, located and named. Carries no verdict."""
+
+    start: int
+    end: int
+    text: str
+    kind: MarkerKind
+
+
+def markers(text: str) -> list[Marker]:
+    """Every register marker in `text`, tagged by family, in the order they appear.
+
+    `run` deliberately reports nothing until mixing is established, which is correct for
+    a verdict and useless to a person deciding which register a paragraph is written in.
+    This locates the same markers unconditionally, so a reader can see the evidence the
+    check declined to draw a conclusion from, and keeps the three families apart because
+    telling impersonal `je` from informal `je` is the judgement being made.
+
+    Shares its patterns with `run` rather than restating them: a reviewer shown a
+    different set of markers than the check acts on would be reading the wrong evidence.
+    """
+    found = [Marker(m.start(), m.end(), m.group(0), "formal") for m in _FORMAL.finditer(text)]
+    for m in _ALL_INFORMAL.finditer(text):
+        kind: MarkerKind = "informal" if _UNAMBIGUOUS.fullmatch(m.group(0)) else "impersonal"
+        found.append(Marker(m.start(), m.end(), m.group(0), kind))
+    return sorted(found, key=lambda marker: marker.start)
 
 
 class RegisterConsistency:

@@ -8,12 +8,16 @@ false entry in it turns the gate into an argument in its own favour.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
 import review_corpus
+from pydantic import ValidationError
 
+from meetlat import console
 from meetlat.zeef import corpus
+from meetlat.zeef.checks import register_consistency
 
 CLEAN = "De gemeente stuurt binnen vijf werkdagen een bevestiging per e-mail aan de aanvrager."
 FIRES = "Beste klant, u kunt uw bestelling annuleren, dan weet jij precies waar je aan toe bent."
@@ -193,3 +197,166 @@ def test_backing_out_of_a_reason_chooses_no_reason(monkeypatch: pytest.MonkeyPat
     """The reject menu has no current value, so `b` leaves the candidate undecided."""
     monkeypatch.setattr(review_corpus, "_read_key", lambda: "b")
     assert review_corpus.pick("why", ["not natural Dutch", "wrong register"], "") == ""
+
+
+def test_accepting_an_untagged_candidate_asks_instead_of_crashing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A collector batch arrives with TODO in both tags; pressing accept used to traceback."""
+    monkeypatch.setattr(review_corpus, "_read_key", lambda: "1")
+    candidate: dict[str, object] = {"text": CLEAN, "register": "TODO", "domain": "TODO"}
+    assert review_corpus._choose_missing(candidate) is True
+    assert candidate["register"] == review_corpus.REGISTERS[0]
+    assert candidate["domain"] == review_corpus.DOMAINS[0]
+    corpus.CorpusEntry.model_validate(
+        {**candidate, "id": "nl-0001", "origin": "authored", "source": "x", "licence": "CC0-1.0"}
+    )
+
+
+def test_backing_out_of_the_tag_question_does_not_accept(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`b` out of the forced picker leaves the candidate untagged and unwritten."""
+    monkeypatch.setattr(review_corpus, "_read_key", lambda: "b")
+    candidate: dict[str, object] = {"text": CLEAN, "register": "TODO", "domain": "TODO"}
+    assert review_corpus._choose_missing(candidate) is False
+    assert candidate["register"] == "TODO"
+
+
+def test_a_tag_already_chosen_is_not_asked_for_again(monkeypatch: pytest.MonkeyPatch) -> None:
+    def refuse() -> str:
+        raise AssertionError("asked for a tag that was already set")
+
+    monkeypatch.setattr(review_corpus, "_read_key", refuse)
+    candidate: dict[str, object] = {"text": CLEAN, "register": "business", "domain": "technical"}
+    assert review_corpus._choose_missing(candidate) is True
+
+
+def test_an_unset_register_has_no_floor_to_report() -> None:
+    """`0/25  25 more for TODO` was a progress report on a tag that does not exist."""
+    unset = review_corpus._progress(0, review_corpus.UNSET)
+    assert "TODO" not in unset
+    assert "25" not in unset
+    assert "no register chosen" in unset
+
+
+def test_a_validation_error_becomes_one_actionable_line() -> None:
+    with pytest.raises(ValidationError) as caught:
+        corpus.CorpusEntry.model_validate(
+            {
+                "id": "nl-0001",
+                "text": CLEAN,
+                "register": "business",
+                "domain": "technical",
+                "origin": "collected",
+                "source": "x",
+                "licence": "CC-BY-SA-4.0",
+            }
+        )
+    said = review_corpus._why_invalid(caught.value)
+    assert "\n" not in said
+    assert "CC-BY-SA-4.0" in said
+
+
+def test_markers_name_the_three_families_apart() -> None:
+    """Bare `je` is not informal evidence, and the reviewer has to be able to see that."""
+    found = register_consistency.markers(
+        "U kunt hier parkeren, al moet je wel eerst jouw kaartje kopen."
+    )
+    assert [(m.text, m.kind) for m in found] == [
+        ("U", "formal"),
+        ("je", "impersonal"),
+        ("jouw", "informal"),
+    ]
+
+
+def test_markers_do_not_fire_where_the_letters_are_not_a_pronoun() -> None:
+    """Same word-boundary rules as the verdict, because they share the patterns."""
+    assert register_consistency.markers("De u-bocht in het beleid en de je-vorm.") == []
+    assert register_consistency.markers("Utrecht en Jeroen zijn geen voornaamwoorden.") == []
+
+
+def test_markers_locate_exactly_what_the_verdict_reports() -> None:
+    """A reviewer shown different markers than the check acts on reads the wrong evidence."""
+    text = "Beste klant, u kunt uw bestelling annuleren, dan weet jij waar je aan toe bent."
+    reported = register_consistency.register_consistency.run(text).findings
+    assert {(f.span.start, f.span.end) for f in reported} == {
+        (m.start, m.end) for m in register_consistency.markers(text)
+    }
+
+
+def test_highlighting_never_changes_the_text_it_paints(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The reviewer judges this paragraph, so painting it must be purely additive."""
+    monkeypatch.setattr(review_corpus, "C", console.Palette(bold="<b>", magenta="<m>", reset="<r>"))
+    line = "Wanneer u een aanvraag indient, kunt u zelf kiezen hoe je de bijlagen aanlevert."
+    painted = review_corpus._highlight(line)
+    assert painted != line
+    assert re.sub(r"<[bmr]>", "", painted) == line
+
+
+def test_a_paragraph_with_no_markers_says_what_that_means() -> None:
+    """The absence is evidence too: it rules out both addressed registers."""
+    said = review_corpus._register_legend("Het bestuur heeft de contributie niet verhoogd.")
+    assert "no register markers" in said
+
+
+def test_the_legend_counts_each_family_without_needing_colour() -> None:
+    said = review_corpus._register_legend(
+        "U kunt hier parkeren, al moet je wel eerst uw kaartje kopen."
+    )
+    assert "formal u/uw 2" in said
+    assert "bare je, may be impersonal 1" in said
+    assert "informal jij/jouw" not in said
+
+
+def _entry(text: str, entry_id: str = "nl-0001") -> corpus.CorpusEntry:
+    return corpus.CorpusEntry.model_validate(
+        {
+            "id": entry_id,
+            "text": text,
+            "register": "formal_u",
+            "domain": "administrative",
+            "origin": "authored",
+            "source": "Niels van Beuningen",
+            "licence": "CC-BY-4.0",
+        }
+    )
+
+
+def test_a_batch_resumes_where_the_last_session_stopped(tmp_path: Path) -> None:
+    """Reviewing 60 of 100 and reopening used to start again at the first candidate."""
+    batch = tmp_path / "b.jsonl"
+    texts = [f"{CLEAN} Nummer {n}." for n in range(4)]
+    batch.write_text(
+        "\n".join(json.dumps({"text": t, "register": "formal_u"}) for t in texts) + "\n",
+        encoding="utf-8",
+    )
+    review_corpus._reject(
+        {"text": texts[1]}, "not natural Dutch", batch.with_suffix(".rejected.jsonl")
+    )
+    left = review_corpus.remaining(batch, [_entry(texts[0])])
+
+    assert [row["text"] for row in left] == [texts[2], texts[3]]
+    assert "2 left of 4" in review_corpus.describe(batch, [_entry(texts[0])])
+
+
+def test_a_skipped_candidate_comes_back(tmp_path: Path) -> None:
+    """`s` means not now, which is the whole difference between it and rejecting."""
+    batch = tmp_path / "b.jsonl"
+    batch.write_text(json.dumps({"text": CLEAN}) + "\n", encoding="utf-8")
+    assert len(review_corpus.remaining(batch, [])) == 1
+
+
+def test_a_fully_reviewed_batch_says_so_rather_than_listing_its_size(tmp_path: Path) -> None:
+    batch = tmp_path / "b.jsonl"
+    batch.write_text(json.dumps({"text": CLEAN}) + "\n", encoding="utf-8")
+    assert review_corpus.describe(batch, [_entry(CLEAN)]).endswith("all reviewed")
+
+
+def test_describe_without_a_corpus_still_reports_the_whole_batch(tmp_path: Path) -> None:
+    """The listing is the only caller that knows the corpus; the rest must not break."""
+    batch = tmp_path / "b.jsonl"
+    batch.write_text(json.dumps({"text": CLEAN, "register": "business"}) + "\n", encoding="utf-8")
+    assert "1 candidates" in review_corpus.describe(batch)
