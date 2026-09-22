@@ -153,12 +153,36 @@ def render(
         f"{candidate.get('source')} · {candidate.get('licence')} · {candidate.get('author') or 'no author'}"
     )
     console.say()
-    console.note(f"proposed: register {proposed}   domain {candidate.get('domain')}")
-    if meaning := corpus.REGISTER_MEANS.get(proposed):
-        console.line(f"{C.dim}{proposed}: {meaning.means}{C.reset}", indent=4)
-    if meaning := corpus.DOMAIN_MEANS.get(str(candidate.get("domain"))):
-        console.line(f"{C.dim}{candidate.get('domain')}: {meaning.means}{C.reset}", indent=4)
-    console.note(f"{proposed}: {counts.get(proposed, 0)} of {PER_REGISTER}")
+    console.line(f"{C.bold}proposed{C.reset}", indent=2)
+    for label, value, meanings in (
+        ("register", proposed, corpus.REGISTER_MEANS),
+        ("domain", str(candidate.get("domain")), corpus.DOMAIN_MEANS),
+    ):
+        meaning = meanings.get(value)
+        console.line(
+            f"{C.dim}{label.ljust(8)}{C.reset} {C.bold}{C.cyan}{value.ljust(15)}{C.reset}"
+            f"  {C.dim}{meaning.means if meaning else ''}{C.reset}",
+            indent=4,
+        )
+    console.line(_progress(counts.get(proposed, 0), proposed), indent=4)
+
+
+def _progress(count: int, register: str) -> str:
+    """The register's standing against its floor, with the verdict on it in colour.
+
+    A register already past 25 is the one fact that should change what you do next, and
+    it was the least visible thing on the screen: `formal_u: 36 of 25` in the same grey
+    as everything around it.
+    """
+    if count >= PER_REGISTER:
+        standing = f"{C.green}✔ {register} has its {PER_REGISTER}{C.reset}"
+        hint = f"{C.dim}, spend the time on a thinner register{C.reset}"
+    else:
+        standing = f"{C.yellow}{PER_REGISTER - count} more for {register}{C.reset}"
+        hint = ""
+    return (
+        f"{bar(count)}  {C.bold}{count}{C.reset}{C.dim}/{PER_REGISTER}{C.reset}  {standing}{hint}"
+    )
 
 
 def _wrapped(text: str, width: int = 88) -> list[str]:

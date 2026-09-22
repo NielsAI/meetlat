@@ -170,3 +170,13 @@ def test_input_that_runs_out_stops_the_review_rather_than_spinning(
     assert review_corpus.key({"y": "accept", "q": "quit"}) == "q"
     with pytest.raises(review_corpus.Stopped):
         review_corpus.key({"1": "one", "2": "two"})
+
+
+def test_a_register_past_its_floor_says_so_where_it_changes_what_you_do() -> None:
+    """`formal_u: 36 of 25` in the same grey as everything else is the fact you miss."""
+    done = review_corpus._progress(36, "formal_u")
+    assert "has its 25" in done
+    assert "thinner register" in done
+
+    todo = review_corpus._progress(6, "informal_je")
+    assert "19 more for informal_je" in todo
