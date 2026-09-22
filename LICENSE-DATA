@@ -10,6 +10,8 @@ This covers:
 - the word and phrase lists authored for this project in `src/meetlat/resources/`
 - the paragraphs in `tests/corpora/` that a person wrote for this project, which are
   the entries marked `origin: authored`
+- the Dutch sentences in `tests/fixtures/`, which were written for this project to give
+  each check a case it must catch and a near-miss it must not
 
 The **code** is licensed separately under the Apache License 2.0; see `LICENSE`.
 Vendored third-party lists arrive under their own licences and are recorded in

@@ -174,10 +174,16 @@ SOURCES: tuple[Source, ...] = (
         licence="CC0-1.0",
         author="Belastingdienst",
         note=(
-            "Dutch tax administration. CC0 1.0, stated on its own copyright page: `Op de "
-            "tekst van belastingdienst.nl is de Creative Commons Zero verklaring (CC0 "
-            "Public Domain) van toepassing`. Formal `u` over money and obligation, a voice "
-            "no other declared source writes in."
+            "Dutch tax administration. CC0 1.0, stated at belastingdienst.nl/wps/wcm/connect/"
+            "bldcontentnl/niet_in_enig_menu/prive/copyright (reachable only from the footer; "
+            "`/copyright` is a 404): `Op de tekst van belastingdienst.nl is de Creative Commons "
+            "Zero verklaring (CC0 Public Domain) van toepassing`, and the body grants copying, "
+            "adapting and distributing commercially with attribution explicitly not required. "
+            "Note that the page's own link points at the Public Domain Mark rather than at CC0, "
+            "so its prose and its href name two different instruments; both land inside "
+            "`REDISTRIBUTABLE`, so the entries are redistributable on either reading, and this "
+            "is recorded so the next reader does not have to rediscover it. Formal `u` over "
+            "money and obligation, a voice no other declared source writes in."
         ),
         urls=(
             "https://www.belastingdienst.nl/wps/wcm/connect/nl/betalenenontvangen/content/problemen-met-betalen",
@@ -230,6 +236,60 @@ SOURCES: tuple[Source, ...] = (
             "https://www.regelhulp.nl/onderwerpen/wetten-regels/jeugdwet",
             "https://www.regelhulp.nl/onderwerpen/wetten-regels/zorgverzekeringswet-zvw",
             "https://www.regelhulp.nl/onderwerpen/wetten-regels/dwang-in-de-zorg",
+        ),
+    ),
+    Source(
+        name="nvwa",
+        licence="CC0-1.0",
+        author="Nederlandse Voedsel- en Warenautoriteit",
+        note=(
+            "The food and consumer product authority. CC0 1.0 per nvwa.nl/service/copyright: "
+            "`Tenzij anders vermeld is op de inhoud van deze website de Creative Commons zero "
+            "verklaring (CC0) van toepassing`, photos and logo excluded. Declared for the two "
+            "domains nothing else here reaches: `everyday` (food, pets, travelling with "
+            "either) and `commercial` (selling to consumers, labelling, web shops, returns). "
+            "Genuinely commercial Dutch is written by shops and is never open-licensed; this "
+            "is the regulator writing to both sides of the same transaction, which is the "
+            "closest an open licence gets."
+        ),
+        urls=(
+            "https://www.nvwa.nl/onderwerpen/productveiligheid/webwinkels",
+            "https://www.nvwa.nl/onderwerpen/productveiligheid/veilige-consumentenproducten-aanbieden",
+            "https://www.nvwa.nl/onderwerpen/productveiligheid/etikettering-van-non-food-producten",
+            "https://www.nvwa.nl/onderwerpen/productveiligheid/melden-onveilige-producten-non-food",
+            "https://www.nvwa.nl/onderwerpen/productveiligheid/speelgoed",
+            "https://www.nvwa.nl/onderwerpen/productveiligheid/baby-en-kinderartikelen",
+            "https://www.nvwa.nl/onderwerpen/productveiligheid/kleding-en-textiel",
+            "https://www.nvwa.nl/onderwerpen/productveiligheid/cosmetica",
+            "https://www.nvwa.nl/onderwerpen/productveiligheid/elektrische-apparaten",
+            "https://www.nvwa.nl/onderwerpen/productveiligheid/elektrische-fietsen",
+            "https://www.nvwa.nl/onderwerpen/productveiligheid/huishoudchemicalien",
+            "https://www.nvwa.nl/onderwerpen/productveiligheid/gastoestellen",
+            "https://www.nvwa.nl/onderwerpen/productveiligheid/trappen-ladders-en-steigers",
+            "https://www.nvwa.nl/onderwerpen/productveiligheid/zonnebanken",
+            "https://www.nvwa.nl/onderwerpen/productveiligheid/tatoeages-en-permanente-make-up",
+            "https://www.nvwa.nl/onderwerpen/productveiligheid/attracties-en-speeltoestellen",
+            "https://www.nvwa.nl/onderwerpen/productveiligheid/voedselcontactmaterialen",
+            "https://www.nvwa.nl/onderwerpen/roken-drinken/alcoholverkoop",
+            "https://www.nvwa.nl/onderwerpen/roken-drinken/tabak-en-rookwaren-verkopen",
+            "https://www.nvwa.nl/onderwerpen/roken-drinken/vapes-en-e-sigaretten",
+            "https://www.nvwa.nl/onderwerpen/voedselveiligheid/etikettering-van-levensmiddelen",
+            "https://www.nvwa.nl/onderwerpen/voedselveiligheid/producten-promoten-via-sociale-media",
+            "https://www.nvwa.nl/onderwerpen/voedselveiligheid/voedingsclaims-en-gezondheidsclaims",
+            "https://www.nvwa.nl/onderwerpen/voedselveiligheid/melden-onveilige-levensmiddelen",
+            "https://www.nvwa.nl/onderwerpen/voedselveiligheid/eetbare-insecten-kweken-of-verkopen",
+            "https://www.nvwa.nl/onderwerpen/voedselveiligheid/allergenen",
+            "https://www.nvwa.nl/onderwerpen/voedselveiligheid/kant-en-klaarmaaltijden",
+            "https://www.nvwa.nl/onderwerpen/voedselveiligheid/babyvoeding-en-andere-speciale-voeding",
+            "https://www.nvwa.nl/onderwerpen/voedselveiligheid/voedingssupplementen",
+            "https://www.nvwa.nl/onderwerpen/voedselveiligheid/voedselveilig-werken-in-horeca-ambacht-en-retail",
+            "https://www.nvwa.nl/onderwerpen/dier/op-reis-met-mijn-huisdier",
+            "https://www.nvwa.nl/onderwerpen/dier/honden-en-katten",
+            "https://www.nvwa.nl/onderwerpen/dier/huisdieren-houden",
+            "https://www.nvwa.nl/onderwerpen/dier/konijnen",
+            "https://www.nvwa.nl/onderwerpen/dier/muizen-ratten-en-ander-ongedierte-bestrijden",
+            "https://www.nvwa.nl/onderwerpen/dier/bijen-en-hommels",
+            "https://www.nvwa.nl/onderwerpen/plant/op-reis-welke-planten-dieren-en-producten-mogen-mee",
         ),
     ),
     Source(
@@ -409,7 +469,19 @@ _VCARD_NAME = re.compile(r"^FN:(.+)$", re.MULTILINE)
 
 @dataclass(frozen=True)
 class IndexRecord:
-    """One search result: where the material is, and who has to be credited for it."""
+    """One search result: where the material is, and who has to be credited for it.
+
+    `authors` comes from the LOM `contribute` blocks whose role is `author`, and is
+    deliberately not what the page displays. Wikiwijs renders the LOM **publisher** under
+    the heading `Auteur`, so following an entry's url to check its credit line can show a
+    different name than the corpus records: for `wikiwijsmaken:182397` the page says
+    `MBO Burgerschap` while the record's authors are the four people who wrote it. The
+    record is the one CC BY 4.0 asks for, because hosting a lesson is not writing one.
+
+    Unlike the licence, which `page_licence` re-reads from the page precisely because an
+    index goes stale, the author is taken from the index and never re-read. That is the
+    right call here and it is also the asymmetry to know about before trusting a mismatch.
+    """
 
     url: str
     authors: tuple[str, ...]

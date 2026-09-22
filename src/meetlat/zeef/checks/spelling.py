@@ -20,17 +20,19 @@ at 5, *taalmodelbeoordeling* stops decomposing on `taal`. Genuine misspellings
 (`onstaan` for `ontstaan`, `teh` for `the`) do not decompose under these rules and
 are counted, which is what the metric is for.
 
-**What normal looks like**: 13.4 per 1000 over the 190-paragraph clean corpus
-(5150 words, 69 out-of-vocabulary tokens, 32 distinct). `words` counts only tokens carrying a
+**What normal looks like**: 20.9 per 1000 over the 302-entry clean corpus
+(8548 words, 179 out-of-vocabulary tokens, 104 distinct). `words` counts only tokens carrying a
 letter, because a word list cannot adjudicate a numeral and whether it holds one is an
 accident: `010` is in it and `24` is not.
 
-That figure was 0.00 while the corpus was 28 paragraphs a person wrote by hand, and it
-rose the moment the corpus was collected from the world instead. What rose it is exactly
-what ADR-0008 said would: `ANBI`, `Teletolk`, `multichannelers`, `Tamazight`,
-`stop-motion`, `Eustatius`. Names, jargon and hyphenated coinages, not misspellings. Read
-a checkpoint's rate against this, expect its prompt's domain to move it more than its
-spelling does, and do not read it as a count of words that are wrong.
+That figure was 0.00 while the corpus was 28 paragraphs a person wrote by hand, and it has
+risen at every step since the corpus was collected from the world instead: 13.4 at 190
+paragraphs, 20.9 at 302. What rises it is exactly what ADR-0008 said would: `ANBI`,
+`Digikoppeling`, `Cbw`, `Teletolk`, `Tamazight`, `stop-motion`, `Eustatius`. Names, jargon
+and hyphenated coinages, not misspellings, and the rise tracks how much government IT prose
+the corpus holds rather than any change in the check. Read a checkpoint's rate against this,
+expect its prompt's domain to move it more than its spelling does, and do not read it as a
+count of words that are wrong.
 """
 
 from __future__ import annotations

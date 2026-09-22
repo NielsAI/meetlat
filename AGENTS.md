@@ -78,8 +78,10 @@ a status line without a glyph from that module. `bad` and `err` are not intercha
 check is a result and goes to stdout; the run going wrong goes to stderr.
 
 **Two licences, and which one applies depends on what you wrote** (`LICENSE`, `LICENSE-DATA`,
-`NOTICE`). Code is Apache 2.0. Data is CC BY 4.0: hand labels, the taxonomy, the wordlists authored
-here, and the Dutch corpus. A **vendored** wordlist keeps its own licence, declares it in an
+`NOTICE`). Code is Apache 2.0. Data authored here is CC BY 4.0: hand labels, the taxonomy, the
+wordlists, and the corpus paragraphs marked `origin: authored`. A **collected** paragraph is not
+this project's to license and keeps the licence it arrived under, named in its own `licence`
+field; most of the corpus is collected, so do not write that the corpus is CC BY 4.0. A **vendored** wordlist keeps its own licence, declares it in an
 `# SPDX-License-Identifier:` and `# Origin: vendored` header, and is named in `NOTICE`, which
 `make check-zeef` enforces. Never relicense a vendored list by copying its contents into an
 authored file.
@@ -114,7 +116,7 @@ Bottom up, because each layer is useful before the next exists (ADR-0001).
 
 | Step | Output | Done |
 | --- | --- | --- |
-| 1 | Layer 1 as a package: checks, wordlists, fixtures, contract gate | ◐ all 7 checks built; the corpus is 190 entries against an exit condition of 200 paragraphs, 172 of them above the 80-character floor for what counts as one. Every register floor is cleared, so what is left is domain reach: `technical` has 6 paragraphs and `care` 14, and `formal_u` is 64 of 73 administrative |
+| 1 | Layer 1 as a package: checks, wordlists, fixtures, contract gate | ◐ all 7 checks built; the corpus is 302 entries, 284 of them above the 80-character paragraph floor, so the 200-paragraph exit condition is met and every register floor is clear. What is left is domain reach: `commercial` (21) and `everyday` (19) are thin, and 69% of the text is Dutch government prose |
 | 2 | Taxonomy plus prompt generator | ✘ ADR-0005 records the decision; no code |
 | 3 | A hand-labelled set for one criterion, two annotators | ✘ schema and guard exist, no labels |
 | 4 | First calibrated judge plus the written protocol | ◐ protocol and gate exist, no judge |

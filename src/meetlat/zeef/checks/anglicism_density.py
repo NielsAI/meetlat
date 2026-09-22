@@ -14,13 +14,23 @@ The cost is that a distribution check reports no findings, so this cannot point 
 the words it counted (ADR-0002 reserves spans for verdicts). `src/meetlat/resources/
 anglicisms.txt` is the whole vocabulary, so a reader who wants the words has them.
 
-**What normal looks like**: 0.00 per 1000 over the 190-paragraph clean corpus (5392
-words, zero hits), across all four registers. It held at zero as the corpus grew from 28
-hand-written paragraphs to 190 mostly collected ones, which is the evidence that the two filters
-on the wordlist are strict enough: naturalised loanwords and Dutch homographs would both
-have fired by now. That is the number a checkpoint's score
-is read against, and it says the wordlist is conservative enough to be silent on
-human Dutch rather than that Dutch contains no English.
+**What normal looks like**: 0.23 per 1000 over the 302-entry clean corpus (8812 words,
+2 hits, 1 distinct). That is the number a checkpoint's score is read against.
+
+It was 0.00 while the corpus was 190 paragraphs, and this docstring used the zero as
+evidence that the two filters on the list were strict enough. The corpus outgrew that
+argument, so it is recorded here rather than quietly replaced. Both hits are the word
+`Information`, inside `Network and Information Security directive` (the EU directive's
+own name) and `Chief Information Officer` (a job title). Neither is English used where
+ordinary Dutch exists, which is what this check is for.
+
+So they are a **third way to be wrong that neither filter covers**: English inside a
+proper name. Naturalised loanwords and Dutch homographs were both anticipated; a name
+that happens to contain a counted word was not. Whether `anglicisms.txt` should gain a
+proper-noun guard, or whether a rate this low is simply the floor and the honest thing
+is to stop claiming silence, is an open decision. Until it is made, read the baseline
+as what a corpus of institutional Dutch produces, not as proof the list never fires on
+correct Dutch.
 """
 
 from __future__ import annotations

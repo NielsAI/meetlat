@@ -149,7 +149,8 @@ The repository is two different kinds of thing, so it carries two licences.
 | Part | Licence | |
 | --- | --- | --- |
 | Code: the checks, the judge harness, the runner | **Apache 2.0** | [LICENSE](LICENSE) |
-| Data: hand labels, the taxonomy, the wordlists authored here, the Dutch corpus | **CC BY 4.0** | [LICENSE-DATA](LICENSE-DATA) |
+| Data **authored here**: hand labels, the taxonomy, the wordlists, the `origin: authored` paragraphs | **CC BY 4.0** | [LICENSE-DATA](LICENSE-DATA) |
+| Corpus paragraphs **collected** from elsewhere | **each keeps its own** | [LICENSE-DATA](LICENSE-DATA), and the `licence` field on every entry |
 
 A software licence is written about source code, derivative works and patents, and none
 of those land cleanly on a file of 200 sentences a person labelled by hand. Apache 2.0
