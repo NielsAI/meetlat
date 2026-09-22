@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import Final
 
 from meetlat.types import Check, ZeefReport
+from meetlat.zeef.checks.anglicism_density import anglicism_density
 from meetlat.zeef.checks.phrase_checks import meta_commentary, translationese
 from meetlat.zeef.checks.register_consistency import register_consistency
 from meetlat.zeef.checks.self_repetition import self_repetition
@@ -29,12 +30,15 @@ CHECKS: Final[tuple[Check, ...]] = (
     meta_commentary,
     self_repetition,
     sentence_length,
+    anglicism_density,
 )
 
 #: Designed in ADR-0001, not yet built. Each line says what it still needs.
 PLANNED: Final[dict[str, str]] = {
-    "anglicism_density": "needs a Dutch/English wordlist with a tunable threshold",
-    "spelling": "needs the OpenTaal wordlist vendored and a compound-aware lookup",
+    "spelling": (
+        "a distribution reporting out-of-vocabulary rate, not a verdict (ADR-0008); "
+        "needs OpenTaal vendored compressed, plus a compound decomposer"
+    ),
 }
 
 

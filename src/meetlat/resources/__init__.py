@@ -9,6 +9,23 @@ _HERE = Path(__file__).parent
 
 
 @lru_cache(maxsize=None)
+def phrase_pairs(name: str) -> tuple[tuple[str, str], ...]:
+    """Read a `left : right` list. The right side documents why the left qualifies.
+
+    Kept separate from `phrase_list` because a list whose entries carry their own
+    justification is a different artifact from a bare list of strings, and flattening
+    one into the other loses the part a reviewer needs.
+    """
+    pairs = []
+    for line in phrase_list(name):
+        left, _, right = line.partition(":")
+        if not right.strip():
+            raise ValueError(f"{name}.txt: {line!r} has no ` : ` and its equivalent")
+        pairs.append((left.strip(), right.strip()))
+    return tuple(pairs)
+
+
+@lru_cache(maxsize=None)
 def phrase_list(name: str) -> tuple[str, ...]:
     """Read `<name>.txt`, dropping blank lines and `#` comments.
 

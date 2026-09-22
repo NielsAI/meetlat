@@ -1,0 +1,22 @@
+{
+  "check": "anglicism_density",
+  "kind": "distribution",
+  "metrics": [
+    {
+      "text": "Beste klant, uw bestelling is verzonden. Neem contact op bij vragen over de bezorging.",
+      "expect": {"words": 14, "anglicisms": 0, "per_1000": 0}
+    },
+    {
+      "text": "Beste customer, uw purchase is verzonden. Neem contact op bij questions over de shipping.",
+      "expect": {"words": 14, "anglicisms": 3, "distinct": 3, "per_1000": 214.29}
+    },
+    {
+      "text": "De server draait online en de laatste update is via e-mail naar het team gestuurd.",
+      "expect": {"words": 15, "anglicisms": 0}
+    },
+    {
+      "text": "",
+      "expect": {"words": 0}
+    }
+  ]
+}

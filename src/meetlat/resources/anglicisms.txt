@@ -1,0 +1,50 @@
+# SPDX-License-Identifier: CC-BY-4.0
+# Origin: authored for meetlat
+#
+# English words used where an ordinary Dutch word exists, as `engels : nederlands`.
+# The Dutch side is not used by the check; it is there to document why the entry
+# qualifies, because "an anglicism" is an argument and the equivalent is the argument.
+#
+# Two filters decide what goes in, and both exclude far more than they admit.
+#
+# 1. NOT NATURALISED. A loanword Dutch has absorbed is Dutch. `computer`, `laptop`,
+#    `e-mail`, `manager`, `team`, `website`, `online`, `app`, `account`, `link`,
+#    `browser`, `server`, `update`, `tool`, `feature`, `deadline`, `feedback`,
+#    `meeting`, `sorry` and `oké` are all normal Dutch and are deliberately absent.
+#
+# 2. NOT A DUTCH HOMOGRAPH. This is the one that silently ruins the count. `start`,
+#    `stop`, `test`, `plan`, `product`, `contact`, `order`, `brand`, `rest`, `kind`,
+#    `slim`, `hard`, `man`, `help`, `over` and `van` are all Dutch words that happen
+#    to be spelled like English ones. Any of them would fire on correct Dutch in
+#    every response, which is why each was considered and rejected.
+#
+# The bar for adding a line: a Dutch writer would not use this word mid-sentence in
+# a Dutch text, in any register.
+answer : antwoord
+customer : klant
+delivery : bezorging
+discount : korting
+example : voorbeeld
+experience : ervaring
+growth : groei
+improvement : verbetering
+information : informatie
+insights : inzichten
+invoice : factuur
+knowledge : kennis
+message : bericht
+overview : overzicht
+password : wachtwoord
+payment : betaling
+purchase : aankoop
+question : vraag
+request : verzoek
+result : resultaat
+search : zoeken
+settings : instellingen
+shipping : verzending
+solution : oplossing
+subscription : abonnement
+username : gebruikersnaam
+value : waarde
+warranty : garantie
