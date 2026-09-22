@@ -31,6 +31,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, get_args
@@ -227,17 +228,102 @@ def bar(count: int, floor: int = PER_REGISTER, width: int = 12) -> str:
     return f"{colour}{'▰' * filled}{C.reset}{C.dim}{'▱' * (width - filled)}{C.reset}"
 
 
+def read_candidates(path: Path) -> list[dict[str, Any]]:
+    return [
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("//")
+    ]
+
+
+def waiting(root: Path = REPO_ROOT) -> list[Path]:
+    """Batches still to be reviewed, most recently collected first.
+
+    `*.rejected.jsonl` is this tool's own output rather than an input, so it is not
+    offered back as something to review.
+    """
+    folder = root / "batches"
+    if not folder.is_dir():
+        return []
+    return sorted(
+        (p for p in folder.glob("*.jsonl") if not p.name.endswith(".rejected.jsonl")),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+
+
+def shown(path: Path) -> str:
+    """The path as a person would type it back: relative to the repository root."""
+    try:
+        return path.resolve().relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def describe(path: Path) -> str:
+    """One line about a batch: how much work it is, and which registers it would fill."""
+    try:
+        rows = read_candidates(path)
+    except Exception as exc:
+        return f"unreadable: {exc}"
+    tally = Counter(str(row.get("register", "untagged")) for row in rows)
+    return f"{len(rows):3d} candidates · " + ", ".join(f"{n} {r}" for r, n in tally.most_common())
+
+
+def guide(batches: list[Path], detail: str = "no batch given") -> None:
+    """What to do, when the tool was run without a batch it can read."""
+    console.banner("meetlat · review", detail)
+    console.say()
+    console.note("A batch is candidate paragraphs from `collect_corpus.py`. Reviewing one")
+    console.note("is the only way text enters the corpus, because the register tag and the")
+    console.note("`is this correct Dutch` call are a person's judgement (ADR-0007).")
+    console.say()
+    if batches:
+        console.heading("Waiting to be reviewed")
+        for path in batches:
+            console.ok(shown(path))
+            console.line(describe(path), indent=4)
+        console.say()
+        console.note("make review ARGS=<one of the paths above>")
+    else:
+        console.heading("Nothing collected yet")
+        console.note("Collect some first, then review what comes back:")
+        console.say()
+        console.line("make corpus-sources", indent=4)
+        console.line(
+            "python3 scripts/collect_corpus.py --source cbs --limit 40 > batches/cbs.jsonl",
+            indent=4,
+        )
+        console.line("make review ARGS=batches/cbs.jsonl", indent=4)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("batch", type=Path, help="candidate JSONL from collect_corpus.py")
+    parser.add_argument(
+        "batch", type=Path, nargs="?", help="candidate JSONL from collect_corpus.py"
+    )
     parser.add_argument("--corpus", type=Path, default=corpus_path())
     args = parser.parse_args(argv)
 
-    candidates = [
-        json.loads(line)
-        for line in args.batch.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+    batches = waiting()
+    if args.batch is None:
+        # Not an error: forgetting the argument is the likeliest way to arrive here, and
+        # an argparse usage line answers a question nobody asked.
+        guide(batches)
+        if not batches or not sys.stdin.isatty():
+            return 0
+        console.say()
+        chosen = pick("review which", [shown(path) for path in batches], "")
+        args.batch = REPO_ROOT / chosen
+
+    if not args.batch.exists():
+        guide(batches, f"no such batch: {shown(args.batch)}")
+        return 1
+
+    candidates = read_candidates(args.batch)
+    if not candidates:
+        console.warn(f"{args.batch} holds no candidates; collect some first")
+        return 0
     entries = corpus.load(args.corpus)
     counts: dict[str, int] = {str(k): v for k, v in corpus.coverage(entries).items()}
     rejects = args.batch.with_suffix(".rejected.jsonl")

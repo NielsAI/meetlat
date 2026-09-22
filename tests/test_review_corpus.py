@@ -127,3 +127,27 @@ def test_the_progress_bar_fills_and_stops_at_the_floor() -> None:
     assert review_corpus.bar(0, floor=25, width=10).count("▰") == 0
     assert review_corpus.bar(25, floor=25, width=10).count("▰") == 10
     assert review_corpus.bar(400, floor=25, width=10).count("▰") == 10
+
+
+def test_a_batch_is_described_by_what_it_would_fill(tmp_path: Path) -> None:
+    """Choosing between batches is choosing which register to spend the hour on."""
+    batch = tmp_path / "b.jsonl"
+    rows = [{"text": CLEAN, "register": r} for r in ("business", "business", "formal_u")]
+    batch.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+    described = review_corpus.describe(batch)
+    assert "3 candidates" in described
+    assert "2 business" in described
+
+
+def test_the_tools_own_output_is_not_offered_back_as_input(tmp_path: Path) -> None:
+    folder = tmp_path / "batches"
+    folder.mkdir()
+    (folder / "cbs.jsonl").write_text("{}\n", encoding="utf-8")
+    (folder / "cbs.rejected.jsonl").write_text("{}\n", encoding="utf-8")
+    assert [p.name for p in review_corpus.waiting(tmp_path)] == ["cbs.jsonl"]
+
+
+def test_comment_lines_are_not_candidates(tmp_path: Path) -> None:
+    batch = tmp_path / "b.jsonl"
+    batch.write_text('// a note\n{"text": "x"}\n', encoding="utf-8")
+    assert review_corpus.read_candidates(batch) == [{"text": "x"}]
