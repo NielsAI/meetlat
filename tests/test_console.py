@@ -58,8 +58,19 @@ def test_duration(seconds: float, expected: str) -> None:
 
 
 def test_box_quotes_every_line_of_the_output(capsys: pytest.CaptureFixture[str]) -> None:
+    """On stdout by default: it is part of the report the step lines above it belong to."""
     console.box("eerste regel\ntweede regel", title="make lint")
     captured = capsys.readouterr()
-    assert "make lint" in captured.err
-    assert "  eerste regel" in captured.err
-    assert "\033[" not in captured.err
+    assert "make lint" in captured.out
+    assert "  eerste regel" in captured.out
+    assert captured.err == ""
+    assert "\033[" not in captured.out
+
+
+def test_skip_and_verdict_stay_plain_when_captured(capsys: pytest.CaptureFixture[str]) -> None:
+    console.skip("secrets", "gitleaks not installed", width=10)
+    console.verdict(False, "pre-commit blocked")
+    captured = capsys.readouterr()
+    assert "○ secrets" in captured.out
+    assert "✘ pre-commit blocked" in captured.out
+    assert "\033[" not in captured.out

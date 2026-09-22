@@ -15,7 +15,7 @@ both are callers of a `scripts/check_*.py` (ADR-0006).
 | --- | --- | --- |
 | `commit-msg` | `scripts/check_commit_msg.py --hook` | An assistant attribution trailer or "Generated with" footer. A **human** co-author trailer is deliberately not matched |
 | `pre-commit` | `make lint format-check check` | Unformatted code, a lint error, or a failing offline gate |
-| `pre-push` | `make preflight` | Anything CI would fail on, which is the point: green locally then means green on push |
+| `pre-push` | `make preflight`, then `make secrets` | Anything CI would fail on, plus a committed secret. This is the last point where scanning still prevents a disclosure rather than reporting one; the scan is skipped, not failed, when gitleaks is not installed |
 
 Every file here is three lines. The logic is in `scripts/`, so `make` and CI reach the same rules
 and a hook cannot become the only place one exists.
@@ -24,7 +24,8 @@ and a hook cannot become the only place one exists.
 
 **No path scoping.** Deciding which checks a staged change needs is worth it when a check costs a
 Docker spin-up. The whole battery here takes about three seconds, so scoping would cost more to
-maintain than it saves.
+maintain than it saves. A step is skipped only when a tool it needs is missing from the machine,
+which is why `pre-push` shows `○ secrets` until you install gitleaks.
 
 **No staged-snapshot isolation.** The checks read the working tree, so formatting a file and
 forgetting to `git add` it passes `pre-commit` and commits the unformatted copy. CI is the backstop

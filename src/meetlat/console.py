@@ -15,6 +15,7 @@ Glyphs, two-space indented so they nest under a heading:
 
     ok    ✔ green    something succeeded
     bad   ✘ red      something failed, on stdout
+    skip  ○ dim      did not run, and why
     warn  ▲ yellow   a caveat that is not fatal
     note    dim      secondary detail, a hint, context
     line             a continuation under one of the above, no glyph
@@ -34,8 +35,12 @@ For a run with several phases:
     counter    dim       the `[n/N]` prefix on a step's verdict line
     step     ▰▱ green    a phase heading with a filled progress bar
     box      ┌─ red      a failing command's own output, fenced as quoted
-    rule       dim       a horizontal divider
+    rule       dim       a horizontal divider, closing off a block of steps
+    verdict  ✔✘ bold     the whole run's outcome, at column 0 rather than indented
     duration             `0.4s`, `1m12s`
+
+`verdict` is the one line that is not indented. Everything else nests under a banner;
+the verdict is what the banner was leading to, so it sits level with it.
 
 `accent` is the project colour and is only ever branding. Status keeps the four
 that mean something, because a reader who has learned that green is a pass should
@@ -130,6 +135,11 @@ def bad(text: str) -> None:
     print(f"{INDENT}{C.red}✘{C.reset} {text}")
 
 
+def skip(label: str, reason: str, *, width: int = 0) -> None:
+    """A step that did not run, and why. Not a pass: a reader must be able to tell."""
+    print(f"{INDENT}{C.dim}○ {label.ljust(width)}  {reason}{C.reset}")
+
+
 def warn(text: str) -> None:
     print(f"{INDENT}{C.yellow}▲{C.reset} {text}")
 
@@ -175,8 +185,14 @@ def banner(name: str, detail: str = "") -> None:
     print(f"\n{C.bold}{C.accent}{GLYPH} {name}{C.reset}{tail}")
 
 
+def verdict(passed: bool, text: str) -> None:
+    """The whole run's outcome, at column 0 because it answers the banner."""
+    glyph = f"{C.green}✔{C.reset}" if passed else f"{C.red}✘{C.reset}"
+    print(f"{glyph} {C.bold}{text}{C.reset}")
+
+
 def rule(label: str = "") -> None:
-    width = min(shutil.get_terminal_size((80, 24)).columns, 80)
+    width = min(shutil.get_terminal_size((80, 24)).columns, 72)
     line = "─" * max(0, width - len(label) - (1 if label else 0))
     print(f"{C.dim}{label}{' ' if label else ''}{line}{C.reset}")
 
@@ -188,15 +204,19 @@ def duration(seconds: float) -> str:
     return f"{int(seconds // 60)}m{int(seconds % 60):02d}s"
 
 
-def box(text: str, *, title: str = "output", palette: Palette | None = None) -> None:
-    """A failing command's output, fenced so it reads as quoted rather than as ours."""
-    p = palette or CE
-    width = min(shutil.get_terminal_size((80, 24)).columns, 80)
+def box(text: str, *, title: str = "output", stderr: bool = False) -> None:
+    """A failing command's output, fenced so it reads as quoted rather than as ours.
+
+    Defaults to stdout: inside a run report the quoted output is part of the report,
+    and splitting it from the step lines above it reorders the two in any pipe.
+    """
+    palette, stream = (CE, sys.stderr) if stderr else (C, sys.stdout)
+    width = min(shutil.get_terminal_size((80, 24)).columns, 72)
     head = f"┌─ {title} "
-    print(f"{p.red}{head}{'─' * max(0, width - len(head))}{p.reset}", file=sys.stderr)
+    print(f"{palette.red}{head}{'─' * max(0, width - len(head))}{palette.reset}", file=stream)
     for text_line in text.splitlines():
-        print(f"  {text_line}", file=sys.stderr)
-    print(f"{p.red}└{'─' * max(0, width - 1)}{p.reset}", file=sys.stderr)
+        print(f"  {text_line}", file=stream)
+    print(f"{palette.red}└{'─' * max(0, width - 1)}{palette.reset}", file=stream)
 
 
 class Spinner:

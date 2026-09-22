@@ -5,26 +5,31 @@ The presentation lives here rather than in three shell scripts, so the hooks spe
 same voice as everything else (`meetlat.console`) instead of each re-deriving its own
 escape codes.
 
-Two deliberate simplifications against the version this is adapted from, both because
-this repository's whole battery runs in about three seconds:
+One deliberate simplification against the version this is adapted from, and one
+deliberate omission.
 
-  * **No path scoping.** Deciding which checks a staged change needs is worth it when a
-    check costs a Docker spin-up. Here it would cost more to maintain than it saves.
-  * **No staged-snapshot isolation.** The checks read the working tree, so formatting a
-    file and forgetting to `git add` it passes here and commits the unformatted copy.
-    CI is the backstop for that, and the stash-and-restore dance that closes it is a
-    hundred lines that can lose uncommitted work when it goes wrong.
+**No path scoping.** Deciding which checks a staged change needs is worth it when a
+check costs a Docker spin-up. The whole battery here takes about three seconds, so
+scoping would cost more to maintain than it saves. A step is skipped only when the
+tool it needs is absent, which is a fact about the machine rather than about the diff.
 
-Fails **open** when the virtualenv is missing. A hook that blocks committing in a fresh
-clone is a hook that gets uninstalled before lunch.
+**No staged-snapshot isolation.** The checks read the working tree, so formatting a
+file and forgetting to `git add` it passes here and commits the unformatted copy. CI
+is the backstop, and the stash-and-restore dance that closes it is a hundred lines
+that can lose uncommitted work when it goes wrong.
+
+Fails **open** when the virtualenv is missing. A hook that blocks committing in a
+fresh clone is a hook that gets uninstalled before lunch.
 """
 
 from __future__ import annotations
 
 import argparse
+import shutil
 import subprocess
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -33,15 +38,69 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 from meetlat import console  # noqa: E402  (needs the sys.path line above)
 from meetlat.console import C  # noqa: E402
 
-#: hook name -> the make targets it runs, in order.
-PLANS: dict[str, tuple[str, ...]] = {
-    # Cheap and immediate: the three offline gates plus formatting, so a defect is
-    # caught while the change is still in your head.
-    "pre-commit": ("lint", "format-check", "check"),
-    # Everything CI runs. `make preflight` green means green on push, and this is what
-    # makes that a fact rather than a habit.
-    "pre-push": ("preflight",),
+
+@dataclass(frozen=True)
+class Step:
+    """One `make` target, with what to tell the reader while it runs."""
+
+    target: str
+    #: The dim column after the label: what this step actually does.
+    detail: str
+    #: An executable that must be on PATH, or the step is skipped rather than failed.
+    #: Only for tools outside the Python dev dependencies, which `make install` covers.
+    requires: str = ""
+
+    def unavailable(self) -> str:
+        if self.requires and shutil.which(self.requires) is None:
+            return f"skipped, {self.requires} not installed"
+        return ""
+
+
+PLANS: dict[str, tuple[Step, ...]] = {
+    # Cheap and immediate, so a defect is caught while the change is still in your head.
+    "pre-commit": (
+        Step("lint", "ruff"),
+        Step("format-check", "ruff format"),
+        Step("check", "zeef, judges, guards"),
+    ),
+    # Everything CI runs, plus the secret scan. This is the last point before the work
+    # leaves the machine, which is the only place scanning for a committed secret still
+    # prevents a disclosure rather than merely reporting one.
+    "pre-push": (
+        Step("preflight", "lint, types, tests, gates"),
+        Step("secrets", "gitleaks, full history", requires="gitleaks"),
+    ),
 }
+
+
+@dataclass(frozen=True)
+class Columns:
+    """Widths measured from the steps themselves, so nothing collides at any length."""
+
+    label: int
+    detail: int
+
+    @staticmethod
+    def measure(steps: tuple[Step, ...]) -> "Columns":
+        return Columns(
+            label=max(len(step.target) for step in steps),
+            detail=max(len(step.detail) for step in steps) + 2,
+        )
+
+
+def _run(step: Step, index: int, total: int, columns: Columns) -> subprocess.CompletedProcess[str]:
+    with console.Spinner(f"make {step.target}") as spinner:
+        result = subprocess.run(
+            ["make", step.target], cwd=REPO_ROOT, capture_output=True, text=True, check=False
+        )
+        elapsed = console.duration(spinner.elapsed)
+
+    glyph = f"{C.green}✔{C.reset}" if result.returncode == 0 else f"{C.red}✘{C.reset}"
+    print(
+        f"{C.dim}[{index}/{total}]{C.reset} {glyph} {step.target.ljust(columns.label)}  "
+        f"{C.dim}{step.detail.ljust(columns.detail)}{elapsed}{C.reset}"
+    )
+    return result
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -53,37 +112,37 @@ def main(argv: list[str] | None = None) -> int:
         console.warn(f"{args.hook}: no .venv, skipping. Run `make install` to enable the checks.")
         return 0
 
-    targets = PLANS[args.hook]
-    console.banner(args.hook, f"{len(targets)} step{'s' if len(targets) != 1 else ''}")
+    planned = PLANS[args.hook]
+    runnable = [step for step in planned if not step.unavailable()]
+    columns = Columns.measure(planned)
+
+    console.banner(args.hook, f"{len(runnable)} check(s) to run")
+    console.rule()
+    for step in planned:
+        if reason := step.unavailable():
+            console.skip(step.target, reason, width=columns.label)
+
     started = time.monotonic()
-
-    for index, target in enumerate(targets, start=1):
-        label = f"make {target}"
-        with console.Spinner(label) as spinner:
-            result = subprocess.run(
-                ["make", target], cwd=REPO_ROOT, capture_output=True, text=True, check=False
-            )
-            elapsed = console.duration(spinner.elapsed)
-
-        prefix = f"{console.counter(index, len(targets))} {label}"
+    for index, step in enumerate(runnable, start=1):
+        result = _run(step, index, len(runnable), columns)
         if result.returncode == 0:
-            console.ok(f"{prefix}  {C.dim}{elapsed}{C.reset}")
             continue
 
-        console.bad(f"{prefix}  {C.dim}{elapsed}{C.reset}")
-        console.box((result.stdout + result.stderr).rstrip(), title=label)
+        console.box((result.stdout + result.stderr).rstrip(), title=f"make {step.target}")
         # Fail fast: the later steps would report the same root cause, and the fix gets
         # applied once rather than after each of them has had its turn.
-        skipped = len(targets) - index
-        if skipped:
-            console.note(f"{skipped} later step(s) not run", stderr=True)
-        console.bad(
-            f"{args.hook} blocked · fix the above, or bypass with "
-            f"{C.bold}--no-verify{C.reset} if you know why"
-        )
+        if remaining := len(runnable) - index:
+            console.note(f"{remaining} later check(s) not run")
+        console.rule()
+        console.verdict(False, f"{args.hook} blocked")
+        console.note("Fix the above, or bypass with --no-verify if you know why.")
         return 1
 
-    console.ok(f"{args.hook} ok · {console.duration(time.monotonic() - started)}")
+    console.rule()
+    elapsed = console.duration(time.monotonic() - started)
+    skipped = len(planned) - len(runnable)
+    tail = f" · {skipped} skipped" if skipped else ""
+    console.verdict(True, f"All checks passed  in {elapsed} · {len(runnable)} run{tail}")
     return 0
 
 
