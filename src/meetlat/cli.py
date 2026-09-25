@@ -205,6 +205,14 @@ def _run(seed: int, per_cell: int, out: Path, temperature: float, limit: int) ->
         console.note(f"first: {failed[0].error}")
 
     answered = [r for r in responses if r.response]
+    # Nothing came back at all: the run went wrong rather than produced a result, so it
+    # goes to stderr and exits non-zero. A green tick and exit 0 over an empty file is
+    # how `make run && make sample` ends up sampling nothing.
+    if not answered:
+        console.err(f"no response came back; {out} holds only failures")
+        console.note("check MEETLAT_BASE_URL and MEETLAT_MODEL against the endpoint", stderr=True)
+        return 1
+
     console.ok(f"{len(answered)} response(s) written to {out}")
 
     # Per interaction type, because a rate over mixed traffic hides that rewriting works

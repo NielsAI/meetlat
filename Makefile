@@ -20,6 +20,7 @@ install: $(VENV)  ## create .venv and install meetlat with its dev tools
 	@$(PY) -m pip install -q --upgrade pip
 	@$(PY) -m pip install -q -e ".[dev]"
 	@$(PY) -c "import meetlat; from meetlat import console; console.ok(f'meetlat {meetlat.__version__} installed with its dev tools')"
+	@$(PY) scripts/install_gitleaks.py
 
 $(VENV):
 	python3 -m venv $(VENV)
@@ -100,11 +101,13 @@ check-guard:  ## the gold set guard still behaves as recorded (ADR-0006)
 check-commit-msg:  ## the commit-message guard still behaves as recorded (ADR-0006)
 	@$(PY) scripts/check_commit_msg.py --selftest
 
-# Not in `check` or `preflight`: it needs a binary that is not a Python dev dependency,
-# and a gate that fails on a fresh clone for a missing tool gets worked around. CI runs
-# the same command, so this is here to reproduce a CI finding locally.
+# `make install` now fetches gitleaks into the venv, verified against a pinned sha256,
+# so this is runnable on a fresh clone. Still not in `check` or `preflight`: that install
+# step fails open on a missing network, so the binary can legitimately be absent, and a
+# gate that fails for a missing tool rather than a finding gets worked around. CI runs
+# the same command unconditionally.
 .PHONY: secrets
-secrets:  ## scan the full git history for committed secrets (needs gitleaks)
+secrets:  ## scan the full git history for committed secrets (gitleaks, from make install)
 	@command -v gitleaks >/dev/null 2>&1 \
 		&& gitleaks detect --source . --redact --verbose \
 		|| $(PY) -c "from meetlat import console; console.skip('secrets', 'gitleaks not installed: https://github.com/gitleaks/gitleaks')"

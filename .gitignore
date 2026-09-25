@@ -18,6 +18,12 @@ runs/
 *.local.json
 .env
 
+# Endpoint credentials for `meetlat run`. Everything in secrets/ is ignored except the
+# example, rather than ignoring `secrets/*.env`: a deny-list here fails open, and the
+# file that gets committed by accident is always the one whose name nobody predicted.
+secrets/*
+!secrets/.env.example
+
 # Phase plan
 docs/agent-phases.md
 
