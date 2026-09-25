@@ -11,11 +11,13 @@ from __future__ import annotations
 import json
 import warnings
 from collections.abc import Callable, Iterator
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from meetlat import settings
 from meetlat.runner.client import Endpoint, EndpointError, complete
 from meetlat.taxonomy import Domain, Register, Task
 from meetlat.taxonomy.generate import ContextDocument, Prompt
@@ -81,6 +83,17 @@ def load_responses(path: Path) -> list[Response]:
     return responses
 
 
+#: Consecutive failures before a run gives up. A wrong key, a wrong model name or a
+#: dead endpoint fails every prompt identically, and grinding through several hundred of
+#: those at three attempts each is minutes spent learning something the fifth failure
+#: already said. Consecutive rather than total, so an endpoint that drops one request in
+#: fifty still completes the run.
+# Tunables live in `meetlat.settings`; re-exported so `run_prompts`'s defaults read at
+# the call site and a caller can override either without importing two modules.
+GIVE_UP_AFTER = settings.GIVE_UP_AFTER
+CONCURRENCY = settings.CONCURRENCY
+
+
 def run_prompts(
     prompts: list[Prompt],
     contexts: list[ContextDocument],
@@ -88,24 +101,33 @@ def run_prompts(
     *,
     on_each: Callable[[Response], None] | None = None,
     ask: Callable[[Endpoint, str, str], str] = complete,
+    give_up_after: int = GIVE_UP_AFTER,
+    concurrency: int = CONCURRENCY,
 ) -> Iterator[Response]:
-    """Yield one response per prompt, in order, keeping failures as failures.
+    """Yield one response per prompt, **in prompt order**, keeping failures as failures.
 
-    A generator so the caller can write each response as it arrives. A run of several
-    hundred prompts against a paid endpoint that loses everything because it died at
-    item 390 is the failure worth designing against first.
+    Concurrent, but ordered. Several hundred sequential round trips is most of a run's
+    wall-clock, and every iteration on a prompt set pays it again. What ordering buys is
+    worth keeping though: `on_each` runs in the consuming thread, so the response file is
+    written by one thread in a fixed order, and an id stays tied to its prompt rather
+    than to whichever request happened to finish first. A response set has to be
+    describable later, and "whatever order the network returned that afternoon" is not a
+    description.
+
+    Giving up is counted in prompt order too, for the same reason: `consecutive` has to
+    mean something stable, and in completion order it would mean whichever failures
+    happened to land together.
     """
     documents = {document.id: document for document in contexts}
 
-    for index, prompt in enumerate(prompts, start=1):
+    def one(index: int, prompt: Prompt) -> Response:
         context = documents[prompt.context_id].text if prompt.context_id else ""
         text, error = "", ""
         try:
             text = ask(endpoint, prompt.instruction, context)
         except EndpointError as exc:
             error = str(exc)
-
-        response = Response(
+        return Response(
             id=f"r-{prompt.seed}-{index:04d}",
             prompt_id=prompt.id,
             task=prompt.task,
@@ -118,9 +140,26 @@ def run_prompts(
             model=endpoint.model,
             temperature=endpoint.temperature,
         )
-        if on_each is not None:
-            on_each(response)
-        yield response
+
+    consecutive = 0
+    with ThreadPoolExecutor(max_workers=max(1, concurrency)) as pool:
+        pending = [pool.submit(one, index, prompt) for index, prompt in enumerate(prompts, 1)]
+        try:
+            for future in pending:
+                response = future.result()
+                if on_each is not None:
+                    on_each(response)
+                yield response
+
+                consecutive = consecutive + 1 if response.error else 0
+                if consecutive >= give_up_after:
+                    return
+        finally:
+            # Reached on the give-up return and on a caller that stops consuming early.
+            # Queued work is cancellable; the few already running are not, and are left
+            # to finish rather than abandoned mid-request.
+            for future in pending:
+                future.cancel()
 
 
 def metadata(endpoint: Endpoint, seed: int, per_cell: int) -> RunMetadata:

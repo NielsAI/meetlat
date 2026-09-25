@@ -72,7 +72,7 @@ from xml.etree import ElementTree
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from meetlat import console  # noqa: E402  (needs the sys.path line above)
+from meetlat import console, settings  # noqa: E402  (needs the sys.path line above)
 from meetlat.zeef import corpus  # noqa: E402
 
 #: What counts as a paragraph is the corpus's definition, not the collector's, so the
@@ -80,18 +80,12 @@ from meetlat.zeef import corpus  # noqa: E402
 MIN_CHARS = corpus.MIN_CHARS
 MAX_CHARS = corpus.MAX_CHARS
 
-USER_AGENT = "meetlat-corpus-collector (https://github.com/NielsAI/meetlat)"
-
-#: Records per index request. The Edurep endpoint refuses anything larger.
-INDEX_PAGE = 100
-
-#: A lesson page yields well under one usable paragraph, so a run reads a lot of them.
-#: The cap is what stops a narrow keyword from walking the whole index in one go.
-MAX_PAGES = 150
-
-#: Seconds between page fetches. The index is public and free to use, and reading it
-#: at full speed is the one reliable way to make it stop being either.
-PAUSE = 0.5
+# Fetch tunables live in `meetlat.settings`; re-exported so the module reads without a
+# prefix and `collect_contexts.py`, which imports this one, gets them too.
+USER_AGENT = settings.USER_AGENT
+INDEX_PAGE = settings.INDEX_PAGE
+MAX_PAGES = settings.MAX_PAGES
+PAUSE = settings.PAUSE
 
 
 @dataclass(frozen=True)

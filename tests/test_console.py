@@ -92,3 +92,18 @@ def test_field_keeps_the_figure_out_of_the_label(capsys: pytest.CaptureFixture[s
     """The point of `field`: a captured stream still reads as a pair, with no colour."""
     print(console.field("paragraphs", 190))
     assert capsys.readouterr().out.strip() == "paragraphs 190"
+
+
+def test_settings_holds_no_rule_that_belongs_with_its_code() -> None:
+    """The line this module draws, asserted so it does not become a junk drawer.
+
+    A value that encodes a rule stays next to the code enforcing it, with the reasoning
+    a reader needs where they meet it. `MIN_CHARS` and `PER_REGISTER` are read by the
+    collector, the reviewer and the gate and must be one number; `REDISTRIBUTABLE` is a
+    licensing decision. Settings are operating conditions, not decisions.
+    """
+    from meetlat import settings
+
+    names = {n for n in vars(settings) if n.isupper()}
+    for rule in ("MIN_CHARS", "MAX_CHARS", "PER_REGISTER", "SIMILARITY", "REDISTRIBUTABLE"):
+        assert rule not in names, f"{rule} is a rule and belongs with the code enforcing it"

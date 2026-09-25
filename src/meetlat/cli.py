@@ -19,6 +19,7 @@ from pathlib import Path
 
 from meetlat import console, zeef
 from meetlat.console import C
+from meetlat.runner import run as run_defaults
 from meetlat.types import CheckResult, Finding, Span, ZeefReport
 
 #: Past this, a report stops being readable and starts being a wall. The count is
@@ -158,7 +159,9 @@ def _generate_prompts(seed: int, per_cell: int, as_json: bool) -> int:
     return 0
 
 
-def _run(seed: int, per_cell: int, out: Path, temperature: float, limit: int) -> int:
+def _run(
+    seed: int, per_cell: int, out: Path, temperature: float, limit: int, concurrency: int
+) -> int:
     """Drive the prompt set through an endpoint and keep what came back (build step 5).
 
     Reports layer 1 per interaction type and no quality figure of any kind. Layer 2 is a
@@ -166,6 +169,7 @@ def _run(seed: int, per_cell: int, out: Path, temperature: float, limit: int) ->
     this command would be the exact claim ADR-0001 says the repository may not make.
     """
     from meetlat.runner import Endpoint, run_prompts
+    from meetlat.runner import run as run_module
     from meetlat.runner.client import EndpointError
     from meetlat.runner.run import metadata
     from meetlat.taxonomy.generate import generate, load_contexts
@@ -182,7 +186,9 @@ def _run(seed: int, per_cell: int, out: Path, temperature: float, limit: int) ->
         console.fail(str(exc))
 
     console.banner("meetlat · run", endpoint.describe())
-    console.note(f"seed {seed}, {per_cell} per cell, {len(prompts)} prompts")
+    console.note(
+        f"seed {seed}, {per_cell} per cell, {len(prompts)} prompts, {concurrency} at a time"
+    )
     if empty:
         console.warn(f"{len(empty)} cells generated nothing; `make check-taxonomy` says which")
     console.note("layer 1 only: nothing here is calibrated, so this reports findings, not quality")
@@ -193,7 +199,7 @@ def _run(seed: int, per_cell: int, out: Path, temperature: float, limit: int) ->
     with out.open("w", encoding="utf-8") as handle:
         handle.write(f"// {metadata(endpoint, seed, per_cell).model_dump_json()}\n")
         with console.Spinner(f"{len(prompts)} prompts") as spinner:
-            for response in run_prompts(prompts, contexts, endpoint):
+            for response in run_prompts(prompts, contexts, endpoint, concurrency=concurrency):
                 handle.write(response.model_dump_json() + "\n")
                 handle.flush()
                 responses.append(response)
@@ -203,6 +209,13 @@ def _run(seed: int, per_cell: int, out: Path, temperature: float, limit: int) ->
     if failed:
         console.warn(f"{len(failed)} of {len(responses)} prompts failed at the endpoint")
         console.note(f"first: {failed[0].error}")
+    # Stopping early is not the same as finishing with failures, and a report that only
+    # gave up after five in a row must not read as one that covered the whole set.
+    if len(responses) < len(prompts):
+        console.warn(
+            f"gave up after {run_module.GIVE_UP_AFTER} failures in a row; "
+            f"{len(prompts) - len(responses)} prompt(s) were never sent"
+        )
 
     answered = [r for r in responses if r.response]
     # Nothing came back at all: the run went wrong rather than produced a result, so it
@@ -267,6 +280,13 @@ def main(argv: list[str] | None = None) -> int:
     run_set.add_argument("--out", type=Path, default=Path("runs/responses.jsonl"))
     run_set.add_argument("--temperature", type=float, default=0.0)
     run_set.add_argument("--limit", type=int, default=0, help="stop after N prompts, for a trial")
+    run_set.add_argument(
+        "--concurrency",
+        type=int,
+        default=run_defaults.CONCURRENCY,
+        metavar="N",
+        help=f"requests in flight (default {run_defaults.CONCURRENCY}; raise it for an endpoint you own)",
+    )
 
     args = parser.parse_args(argv)
     if args.command == "checks":
@@ -274,7 +294,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "prompts":
         return _generate_prompts(args.seed, args.per_cell, args.json)
     if args.command == "run":
-        return _run(args.seed, args.per_cell, args.out, args.temperature, args.limit)
+        return _run(
+            args.seed, args.per_cell, args.out, args.temperature, args.limit, args.concurrency
+        )
 
     text = args.path.read_text(encoding="utf-8") if args.path else sys.stdin.read()
     try:
